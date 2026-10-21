@@ -1,0 +1,6 @@
+{
+  "user_query": "明天适合户外跑步吗？",
+  "intent": "outdoor_activity",
+  "context": {},
+  "weather_evidence": []
+}

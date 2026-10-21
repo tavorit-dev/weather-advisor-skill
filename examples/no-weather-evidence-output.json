@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "status": "insufficient_evidence",
+  "intent": "outdoor_activity",
+  "summary": "目前没有青岛今天的天气数据，无法判断是否适合去海边。",
+  "evidence": [],
+  "recommendations": [],
+  "risks": [
+    {
+      "description": "缺少风力、降水、温度和预警信息，无法评估海边活动的天气风险。",
+      "severity": "unknown",
+      "evidence_ids": []
+    }
+  ],
+  "missing_information": [
+    "precipitation_probability",
+    "wind_speed",
+    "temperature",
+    "severe_weather_alert"
+  ],
+  "clarification_question": null,
+  "uncertainty": [
+    "没有天气证据不等于天气安全；建议查看当地官方预报和预警后再决定。"
+  ]
+}

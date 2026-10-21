@@ -1,0 +1,58 @@
+{
+  "schema_version": "1.0",
+  "status": "answered",
+  "intent": "clothing_advice",
+  "summary": "明天北京白天大约 2–9 °C，早晨体感可低至 −3 °C，建议分层穿着并注意防风。",
+  "evidence": [
+    {
+      "evidence_id": "ev-temp-min-001",
+      "claim": "当日最低气温为 2 °C。"
+    },
+    {
+      "evidence_id": "ev-temp-max-001",
+      "claim": "当日最高气温为 9 °C。"
+    },
+    {
+      "evidence_id": "ev-apparent-001",
+      "claim": "体感温度可低至 −3 °C。"
+    },
+    {
+      "evidence_id": "ev-wind-001",
+      "claim": "风速约 25 km/h，会加重体感寒冷。"
+    }
+  ],
+  "recommendations": [
+    {
+      "action": "采用分层穿法：贴身排汗层、保暖层和防风外层。",
+      "reason": "昼夜温差约 7 °C，且风速约 25 km/h，分层便于根据室内外和活动量增减。",
+      "evidence_ids": [
+        "ev-temp-min-001",
+        "ev-temp-max-001",
+        "ev-wind-001"
+      ]
+    },
+    {
+      "action": "准备手套、围巾或能护耳的帽子。",
+      "reason": "早晨体感温度可低至 −3 °C，暴露部位更容易感到寒冷。",
+      "evidence_ids": [
+        "ev-apparent-001"
+      ]
+    }
+  ],
+  "risks": [
+    {
+      "description": "清晨体感明显低于实际气温，长时间在户外停留容易受寒。",
+      "severity": "medium",
+      "evidence_ids": [
+        "ev-apparent-001",
+        "ev-wind-001"
+      ]
+    }
+  ],
+  "missing_information": [],
+  "clarification_question": null,
+  "uncertainty": [
+    "未提供用户的室内外活动时长；若长时间在户外，需要在此基础上再增加保暖。",
+    "预报为前一日发布，第二天清晨的气温可能仍有小幅变化。"
+  ]
+}
