@@ -1,6 +1,13 @@
-# weather-advisor-skill
+<p align="center">
+  <img src="images/banner.png" alt="天气智言 — 基于证据的天气建议" width="100%">
+</p>
 
-[English](README.md) | 简体中文
+<h1 align="center">
+  <img src="images/logo.png" alt="weather-advisor-skill logo" width="56" valign="middle">
+  weather-advisor-skill
+</h1>
+
+<p align="center"><a href="README.md">English</a> | 简体中文</p>
 
 让兼容 Skill 的 Agent 在天气建议上做到：**先看证据，再给建议，输出可校验**。
 

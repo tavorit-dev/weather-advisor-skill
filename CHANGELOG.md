@@ -40,6 +40,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   offline brief drops from 9.9 KB to 7.2 KB compact, 3.6 KB at `--every 3`, or
   1.7 KB with summary-only compact.
 
+- Project banner and logo under `images/`, shown at the top of `README.md` and
+  `README.zh.md`.
+
 ### Changed
 
 - Consolidated project-level constraints, pre-release checks, and contribution
