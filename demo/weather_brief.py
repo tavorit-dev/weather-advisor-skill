@@ -171,6 +171,8 @@ def build_brief(
     query: str,
     intent: str,
     offline: bool,
+    summary_only: bool = False,
+    every: int = 1,
 ) -> dict[str, Any]:
     forecast = fetch_forecast(location, days=days, offline=offline)
     retrieved_at = datetime.now(timezone).isoformat(timespec="seconds")
@@ -187,7 +189,7 @@ def build_brief(
     if not rows:
         raise DemoError("No evidence covers the requested date and window")
 
-    hours = []
+    hour_rows = []
     for hour in sorted(rows):
         values: dict[str, Any] = {}
         ids: dict[str, str] = {}
@@ -201,7 +203,7 @@ def build_brief(
             item = rows[hour][evidence_type]
             values[evidence_type] = item["value"]
             ids[evidence_type] = item["id"]
-        hours.append(
+        hour_rows.append(
             {
                 "time": hour.strftime("%H:%M"),
                 "values": values,
@@ -209,13 +211,27 @@ def build_brief(
             }
         )
 
-    return {
+    hours = hour_rows
+    if every > 1:
+        hours = [
+            row for row in hour_rows if int(row["time"][:2]) % every == 0
+        ]
+        if not hours:
+            raise DemoError(
+                "--every leaves no hourly rows; use a smaller step or a window"
+            )
+
+    detail = "summary" if summary_only else ("sparse" if every > 1 else "hourly")
+    brief = {
         "user_query": query,
         "intent": intent,
         "location": location,
         "coverage": {
             "date": target.isoformat(),
             "window": window_label,
+            "detail": detail,
+            "step_hours": every,
+            "hours_in_window": len(hour_rows),
             "hours_included": len(hours),
             "source_start": min(item["valid_from"] for item in evidence),
             "source_end": max(item["valid_to"] for item in evidence),
@@ -239,7 +255,6 @@ def build_brief(
             "wind_speed": {"max": stat(rows, "wind_speed", "max")},
             "wind_gust": {"max": stat(rows, "wind_gust", "max")},
         },
-        "hours": hours,
         "source": {
             "provider": "Open-Meteo",
             "mode": "offline" if offline else "live",
@@ -255,6 +270,9 @@ def build_brief(
             "official warnings or air-quality data."
         ),
     }
+    if not summary_only:
+        brief["hours"] = hours
+    return brief
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -291,6 +309,23 @@ def main(argv: list[str] | None = None) -> int:
         help="use the bundled Tokyo fixture and make no network call",
     )
     parser.add_argument(
+        "--summary-only",
+        action="store_true",
+        help="omit hourly rows; keep summary statistics and their evidence IDs",
+    )
+    parser.add_argument(
+        "--every",
+        type=int,
+        default=1,
+        metavar="N",
+        help="include every Nth clock hour (1-24) for a compact day curve",
+    )
+    parser.add_argument(
+        "--compact",
+        action="store_true",
+        help="emit compact JSON without indentation",
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         help="write the brief to this file instead of stdout",
@@ -298,6 +333,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
+        if not 1 <= args.every <= 24:
+            raise DemoError("--every must be between 1 and 24")
         location = geocode(args.city, offline=args.offline)
         timezone = _zone(location["timezone"])
         target, days = resolve_date(args.date, timezone, offline=args.offline)
@@ -315,12 +352,17 @@ def main(argv: list[str] | None = None) -> int:
             query=args.query,
             intent=args.intent,
             offline=args.offline,
+            summary_only=args.summary_only,
+            every=args.every,
         )
     except DemoError as exc:
         print(f"Weather brief failed: {exc}", file=sys.stderr)
         return 1
 
-    payload = json.dumps(brief, ensure_ascii=False, indent=2)
+    if args.compact:
+        payload = json.dumps(brief, ensure_ascii=False, separators=(",", ":"))
+    else:
+        payload = json.dumps(brief, ensure_ascii=False, indent=2)
     if args.output:
         try:
             args.output.write_text(payload + "\n", encoding="utf-8")

@@ -36,6 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   summary statistics and evidence IDs, plus `tests/test_weather_brief.py`.
   It reduces live-consultation round trips and context size without adding a
   new data source.
+- `weather_brief.py --compact`, `--summary-only`, and `--every N`: a 12-hour
+  offline brief drops from 9.9 KB to 7.2 KB compact, 3.6 KB at `--every 3`, or
+  1.7 KB with summary-only compact.
 
 ### Changed
 

@@ -84,6 +84,91 @@ class WeatherBriefTests(unittest.TestCase):
         self.assertEqual(brief["coverage"]["hours_included"], 12)
         self.assertEqual(brief["coverage"]["window"], "00:00-24:00")
 
+    def test_summary_only_omits_hourly_rows(self) -> None:
+        result = run(
+            BRIEF,
+            "Tokyo",
+            "--offline",
+            "--date",
+            FIXTURE_DATE,
+            "--window",
+            "08:00-12:00",
+            "--summary-only",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        brief = json.loads(result.stdout)
+        self.assertNotIn("hours", brief)
+        self.assertEqual(brief["coverage"]["detail"], "summary")
+        self.assertEqual(brief["coverage"]["hours_included"], 4)
+
+        cited = {
+            value["evidence_id"]
+            for group in brief["summary"].values()
+            for value in group.values()
+            if value and "evidence_id" in value
+        }
+        self.assertTrue(cited)
+        self.assertTrue(cited <= self.demo_ids)
+
+    def test_compact_output_is_smaller_and_valid_json(self) -> None:
+        common = (
+            BRIEF,
+            "Tokyo",
+            "--offline",
+            "--date",
+            FIXTURE_DATE,
+            "--window",
+            "08:00-12:00",
+        )
+        pretty = run(*common)
+        compact = run(*common, "--compact")
+        self.assertEqual(pretty.returncode, 0, pretty.stderr)
+        self.assertEqual(compact.returncode, 0, compact.stderr)
+        self.assertEqual(json.loads(pretty.stdout), json.loads(compact.stdout))
+        self.assertLess(len(compact.stdout), len(pretty.stdout))
+        self.assertEqual(compact.stdout.count("\n"), 1)
+
+    def test_every_three_hours_keeps_a_day_curve(self) -> None:
+        result = run(
+            BRIEF,
+            "Tokyo",
+            "--offline",
+            "--date",
+            FIXTURE_DATE,
+            "--every",
+            "3",
+            "--compact",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        brief = json.loads(result.stdout)
+        self.assertEqual(brief["coverage"]["detail"], "sparse")
+        self.assertEqual(brief["coverage"]["step_hours"], 3)
+        self.assertEqual(brief["coverage"]["hours_in_window"], 12)
+        self.assertEqual(brief["coverage"]["hours_included"], 4)
+        self.assertEqual([hour["time"] for hour in brief["hours"]], [
+            "09:00",
+            "12:00",
+            "15:00",
+            "18:00",
+        ])
+        self.assertEqual(
+            brief["summary"]["wind_gust"]["max"]["evidence_id"],
+            "ev-006-wind_gusts_10m",
+        )
+
+    def test_invalid_every_fails(self) -> None:
+        result = run(
+            BRIEF,
+            "Tokyo",
+            "--offline",
+            "--date",
+            FIXTURE_DATE,
+            "--every",
+            "0",
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("--every", result.stderr)
+
     def test_output_file_is_supported(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "brief.json"

@@ -103,8 +103,14 @@ python demo/weather_demo.py Tokyo \
 # 今天剩余时段
 python demo/weather_brief.py Tianjin --date today
 
-# 指定窗口
-python demo/weather_brief.py Tianjin --date tomorrow --window 10:00-16:00
+# 指定窗口，紧凑 JSON
+python demo/weather_brief.py Tianjin --date tomorrow --window 10:00-16:00 --compact
+
+# 全天但没有指定时段：每 3 小时保留一个点
+python demo/weather_brief.py Tianjin --date tomorrow --every 3 --compact
+
+# 只需要极值：只看统计值
+python demo/weather_brief.py Tianjin --date tomorrow --summary-only --compact
 
 # 离线 fixture（日期固定为 2026-10-22）
 python demo/weather_brief.py Tokyo --offline --date 2026-10-22 --window 08:00-12:00
@@ -112,9 +118,9 @@ python demo/weather_brief.py Tokyo --offline --date 2026-10-22 --window 08:00-12
 
 输出包含：
 
-- `coverage`：日期、窗口、包含小时数、源证据覆盖范围；
+- `coverage`：日期、窗口、明细模式（`summary` / `sparse` / `hourly`）、步长、窗口小时数、实际输出小时数、源证据覆盖范围；
 - `summary`：温度/体感的 min/max、降雨概率最大值、降水量合计、风速/阵风最大值；
-- `hours`：每个小时的数值与对应 `evidence_id`；
+- `hours`：每个小时的数值与对应 `evidence_id`（`--summary-only` 时省略）；
 - `source`：提供方、模式、获取时间、署名与许可；
 - `demo_gaps`：demo 不提供的证据类型（官方预警、空气质量、紫外线等）。
 
@@ -123,8 +129,16 @@ python demo/weather_brief.py Tokyo --offline --date 2026-10-22 --window 08:00-12
 | 项目 | `weather_demo.py` | `weather_brief.py` |
 | --- | --- | --- |
 | 输出 | 完整 `weather_evidence` | 窗口化摘要 + 证据 ID |
-| 体积（实测） | 约 22 KB（离线 12 小时）/ 50–100 KB（实时全天） | 约 5–10 KB |
+| 默认体积（离线 12 小时） | 约 22 KB | 9.9 KB |
+| `--compact` | — | 7.2 KB |
+| `--every 3 --compact` | — | 3.6 KB |
+| `--summary-only` | — | 2.4 KB |
+| `--summary-only --compact` | — | **1.7 KB** |
 | 用途 | 校验、调试、完整输入 | Agent 日常咨询 |
+
+`--summary-only` 只保留统计值和对应证据 ID；需要时间分布时用 `--every 3` 保留每 3 小时一个真实证据点。`--compact` 去掉 JSON 缩进，适合直接交给 Agent。
+
+实时 24 小时实测：hourly compact 约 12.7 KB，`--every 3 --compact` 约 5.4 KB，`--summary-only --compact` 约 1.7 KB。
 
 `weather_brief.py` 不产生建议，也不替代官方预警或空气质量数据；它只是
 `weather_demo.py` 证据的紧凑投影。两者都保留 Open-Meteo 署名和许可信息。

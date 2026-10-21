@@ -19,7 +19,7 @@
 | `validate_cases.py` | 检查 `cases.jsonl` 本身的格式、枚举值和证据引用 |
 | `grade_case.py` | 用指定用例评分一份模型响应 |
 | `test_demo.py` | L1 数据层测试：离线验证 demo 的地理编码与字段转换 |
-| `test_weather_brief.py` | 紧凑摘要测试：离线验证窗口过滤、统计值、证据 ID 与体积 |
+| `test_weather_brief.py` | 紧凑摘要测试：离线验证窗口过滤、统计值、证据 ID、`--compact`、`--summary-only` 与 `--every` |
 | `test_claude_integration.py` | Claude Code 入口、安装脚本与可选 Hook 的集成测试 |
 | `requirements.txt` | Python 依赖（`test_demo.py` 只用标准库） |
 
