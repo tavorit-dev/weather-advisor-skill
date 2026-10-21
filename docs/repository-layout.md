@@ -8,6 +8,9 @@ weather-advisor-skill/
 ├── CLAUDE.md                      # Conventions and invariants for contributors
 ├── CHANGELOG.md
 ├── LICENSE
+├── images/
+│   ├── banner.png                 # README banner
+│   └── logo.png                   # Project logo
 ├── docs/
 │   ├── getting-started.md         # Host integration, examples, demo, validation
 │   ├── claude-code.md             # Claude Code entry, install script, optional hook
