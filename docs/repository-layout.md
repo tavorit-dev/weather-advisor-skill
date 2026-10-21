@@ -10,9 +10,19 @@ weather-advisor-skill/
 ├── LICENSE
 ├── docs/
 │   ├── getting-started.md         # Host integration, examples, demo, validation
+│   ├── claude-code.md             # Claude Code entry, install script, optional hook
 │   ├── architecture.md            # Scope, workflow, status model, intents, principles
 │   ├── examples-and-tests.md      # Example pairs and test coverage
 │   └── repository-layout.md       # This file
+├── scripts/
+│   └── install_claude_skill.py    # Install the skill under ~/.claude/skills
+├── .claude/
+│   ├── settings.json              # Hooks are opt-in; empty by default
+│   ├── skills/
+│   │   └── weather-advisor/
+│   │       └── SKILL.md           # Claude Code entry and /weather-advisor
+│   └── hooks/
+│       └── validate-weather-output.py  # Optional Stop hook / manual validator
 ├── references/
 │   ├── intent-catalog.md          # Six intents, required context, clarification rules
 │   ├── evidence-contract.md       # Input shape, validity, missing/conflicting evidence
@@ -47,6 +57,7 @@ weather-advisor-skill/
     ├── validate_cases.py          # Case file linting
     ├── grade_case.py              # Grade one response against one case
     ├── test_demo.py               # L1 data-layer tests (offline)
+    ├── test_claude_integration.py # Claude Code entry, installer, and hook tests
     ├── requirements.txt
     └── README.md
 ```

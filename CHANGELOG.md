@@ -20,6 +20,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `tests/test_demo.py`.
 - `demo/README.md` documenting field mapping, attribution, licensing limits,
   and how to replace the weather provider.
+- Claude Code project skill at `.claude/skills/weather-advisor/SKILL.md`,
+  exposing `/weather-advisor` and the live demo workflow while delegating rules
+  to the canonical `SKILL.md`. Claude Code-only metadata such as
+  `argument-hint` stays in the entry, keeping the canonical skill portable.
+- `scripts/install_claude_skill.py` for installing the skill and its supporting
+  files under `~/.claude/skills/weather-advisor`.
+- Optional Stop hook (`.claude/hooks/validate-weather-output.py`) that validates
+  a requested JSON response against the schema. It is disabled by default.
+- `docs/claude-code.md` covering invocation, live mode, installation, hook
+  configuration, and verification.
+- `tests/test_claude_integration.py` covering the entry metadata, installer,
+  and hook behavior.
 
 ### Changed
 
