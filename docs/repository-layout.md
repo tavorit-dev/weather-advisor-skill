@@ -1,0 +1,55 @@
+# Repository Layout
+
+```text
+weather-advisor-skill/
+├── SKILL.md                       # Skill entry: workflow and hard constraints
+├── README.md                      # English README (default)
+├── README.zh.md                   # Chinese README
+├── CLAUDE.md                      # Conventions and invariants for contributors
+├── CHANGELOG.md
+├── LICENSE
+├── docs/
+│   ├── getting-started.md         # Host integration, examples, demo, validation
+│   ├── architecture.md            # Scope, workflow, status model, intents, principles
+│   ├── examples-and-tests.md      # Example pairs and test coverage
+│   └── repository-layout.md       # This file
+├── references/
+│   ├── intent-catalog.md          # Six intents, required context, clarification rules
+│   ├── evidence-contract.md       # Input shape, validity, missing/conflicting evidence
+│   ├── recommendation-rules.md    # From weather facts to actions
+│   └── safety-and-uncertainty.md  # Severe weather, uncertainty, wording limits
+├── schemas/
+│   └── recommendation.schema.json # Output contract (Draft 2020-12)
+├── examples/                      # Six input/output pairs
+│   ├── commute-rain.json
+│   ├── commute-rain-output.json
+│   ├── clothing-cold.json
+│   ├── clothing-cold-output.json
+│   ├── outdoor-wind.json
+│   ├── outdoor-wind-output.json
+│   ├── travel-planning.json
+│   ├── travel-planning-output.json
+│   ├── missing-location.json
+│   ├── missing-location-output.json
+│   ├── no-weather-evidence.json
+│   └── no-weather-evidence-output.json
+├── demo/                          # Key-free demo: Open-Meteo -> evidence
+│   ├── weather_demo.py
+│   ├── fixtures/
+│   │   ├── geocoding-tokyo.json
+│   │   └── forecast-tokyo.json
+│   └── README.md
+└── tests/
+    ├── cases.jsonl                # 32 acceptance cases
+    ├── validate_schema.py         # Schema validation
+    ├── check_evidence.py          # Evidence reference validation
+    ├── run_examples.py            # Batch example validation
+    ├── validate_cases.py          # Case file linting
+    ├── grade_case.py              # Grade one response against one case
+    ├── test_demo.py               # L1 data-layer tests (offline)
+    ├── requirements.txt
+    └── README.md
+```
+
+Which file owns which rule is defined in [`CLAUDE.md`](../CLAUDE.md); do not
+duplicate a rule across files.
