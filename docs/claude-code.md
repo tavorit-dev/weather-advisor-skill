@@ -45,21 +45,36 @@ requested hours, summary statistics, and evidence IDs, so one tool call is
 usually enough:
 
 ```bash
-python3 demo/weather_brief.py <city> --date today|tomorrow --window HH:MM-HH:MM
+# User named a time range: keep hourly rows
+python3 demo/weather_brief.py <city> --date today --window 13:00-18:00 --compact
+
+# Whole day with no time range: keep a 3-hour curve
+python3 demo/weather_brief.py <city> --date tomorrow --every 3 --compact
+
+# Only extremes are needed: summary only
+python3 demo/weather_brief.py <city> --date tomorrow --summary-only --compact
+
+# Offline fixture
+python3 demo/weather_brief.py Tokyo --offline --date 2026-10-22 --window 08:00-12:00 --compact
 ```
 
-Examples:
+| Mode | What it returns | Offline 12-hour size |
+| --- | --- | ---: |
+| default | hourly rows + summary | 9.9 KB |
+| `--compact` | hourly rows + summary, no indentation | 7.2 KB |
+| `--every 3 --compact` | 3-hour curve + summary | 3.6 KB |
+| `--summary-only` | summary statistics and IDs only | 2.4 KB |
+| `--summary-only --compact` | summary statistics and IDs, no indentation | **1.7 KB** |
 
-```bash
-python3 demo/weather_brief.py Tianjin --date today --window 13:00-18:00
-python3 demo/weather_brief.py Tianjin --date tomorrow
-python3 demo/weather_brief.py Tokyo --offline --date 2026-10-22 --window 08:00-12:00
-```
+For a live 24-hour Haikou check, the hourly compact brief was 12.7 KB, the
+`--every 3` compact brief was 5.4 KB, and the summary-only compact brief was
+1.7 KB.
 
-The brief is typically 5–10 KB, compared with roughly 50–100 KB for a live
-full-day envelope. In a Tianjin 6-hour-window check it was 6.1 KB versus 87.9 KB
-for the full live envelope (about 7%). Use `demo/weather_demo.py` only when the
-complete evidence set or a schema-ready input envelope is required.
+The brief is typically 2–13 KB, compared with roughly 50–100 KB for a live
+full-day envelope. In a Tianjin 6-hour-window check the indented brief was
+6.1 KB versus 87.9 KB for the full live envelope (about 7%). Use
+`demo/weather_demo.py` only when the complete evidence set or a schema-ready
+input envelope is required.
 
 `--offline` uses the synthetic Tokyo fixture and requires an explicit date
 because the fixture is fixed. If the command fails, the skill must explain the
@@ -68,10 +83,13 @@ failure rather than invent values.
 ### Token-efficient consultation pattern
 
 1. Use one `weather_brief.py` call with the narrowest window the user gave.
-2. Cite the IDs in the brief; do not re-print the full evidence.
-3. Answer in the response sections; do not read the same reference files again
+2. Add `--compact`. For a whole-day question, use `--every 3`; use
+   `--summary-only` only when extremes or a yes/no are enough.
+3. Cite the IDs in the brief; do not re-print the full evidence.
+4. Answer in the response sections; do not read the same reference files again
    in the same session.
-4. Ask for a time window only when it materially changes the answer.
+5. Keep a simple suitability answer to the recommended window, 3–5 key values,
+   3–4 recommendations, and 2–3 risks. Expand only when asked.
 
 The brief is a view of the demo evidence, not a new data source and not a
 recommendation engine. The full contract remains

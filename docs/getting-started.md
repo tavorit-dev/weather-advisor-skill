@@ -152,10 +152,12 @@ For a compact, token-efficient view of the same evidence, use
 `demo/weather_brief.py`:
 
 ```bash
-python demo/weather_brief.py Tianjin --date tomorrow --window 10:00-16:00
+python demo/weather_brief.py Tianjin --date tomorrow --window 10:00-16:00 --compact
+python demo/weather_brief.py Tianjin --date tomorrow --summary-only --compact
 ```
 
-It returns only the requested hours, summary statistics, and evidence IDs. See
+It returns only the requested hours, summary statistics, and evidence IDs;
+`--summary-only` omits the hourly rows. See
 [`claude-code.md`](claude-code.md#token-efficient-consultation-pattern) for the
 recommended consultation pattern.
 

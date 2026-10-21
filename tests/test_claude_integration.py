@@ -73,6 +73,7 @@ class InstallerTests(unittest.TestCase):
                 "2026-10-22",
                 "--window",
                 "08:00-12:00",
+                "--compact",
             )
             self.assertEqual(brief.returncode, 0, brief.stderr)
             self.assertEqual(json.loads(brief.stdout)["coverage"]["hours_included"], 4)
