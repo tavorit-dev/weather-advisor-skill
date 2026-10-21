@@ -1,0 +1,99 @@
+{
+  "schema_version": "1.0",
+  "status": "answered",
+  "intent": "travel_planning",
+  "summary": "周六杭州降雨概率高，适合安排室内行程并带好雨具；周日天气转好但有紫外线，适合户外。周一没有可用预报，出发前需要再确认。",
+  "evidence": [
+    {
+      "evidence_id": "ev-rain-sat-001",
+      "claim": "周六 08:00–20:00 降雨概率为 80%。"
+    },
+    {
+      "evidence_id": "ev-rain-amount-sat-001",
+      "claim": "周六同期可能降雨约 12 mm。"
+    },
+    {
+      "evidence_id": "ev-temp-sat-min-001",
+      "claim": "周六最低气温约 16 °C。"
+    },
+    {
+      "evidence_id": "ev-temp-sat-max-001",
+      "claim": "周六最高气温约 21 °C。"
+    },
+    {
+      "evidence_id": "ev-temp-sun-min-001",
+      "claim": "周日最低气温约 15 °C。"
+    },
+    {
+      "evidence_id": "ev-temp-sun-max-001",
+      "claim": "周日最高气温约 22 °C。"
+    },
+    {
+      "evidence_id": "ev-uv-sun-001",
+      "claim": "周日 10:00–16:00 紫外线指数为 6。"
+    },
+    {
+      "evidence_id": "ev-wind-sun-001",
+      "claim": "周日风速约 15 km/h。"
+    }
+  ],
+  "recommendations": [
+    {
+      "action": "周六携带雨伞或雨衣，并安排博物馆、商场等室内备选行程。",
+      "reason": "周六降雨概率 80%，可能降雨约 12 mm，长时间户外活动容易受影响。",
+      "evidence_ids": [
+        "ev-rain-sat-001",
+        "ev-rain-amount-sat-001"
+      ]
+    },
+    {
+      "action": "周六穿防水鞋，随身物品用防水袋保护。",
+      "reason": "降雨概率和可能雨量都较高，路面积水会打湿鞋袜和随身物品。",
+      "evidence_ids": [
+        "ev-rain-sat-001",
+        "ev-rain-amount-sat-001"
+      ]
+    },
+    {
+      "action": "周日安排户外行程，带遮阳帽和防晒用品。",
+      "reason": "周日降雨未出现在证据中，且紫外线指数为 6，正午前后户外暴露需要防晒。",
+      "evidence_ids": [
+        "ev-uv-sun-001",
+        "ev-temp-sun-max-001"
+      ]
+    },
+    {
+      "action": "带一件薄外套，早晚温差约 7 °C。",
+      "reason": "周六、周日气温大致在 15–22 °C 之间，早晚偏凉。",
+      "evidence_ids": [
+        "ev-temp-sat-min-001",
+        "ev-temp-sat-max-001",
+        "ev-temp-sun-min-001",
+        "ev-temp-sun-max-001"
+      ]
+    },
+    {
+      "action": "出发前复核周一的预报和返程安排。",
+      "reason": "现有证据只覆盖周六和周日，周一没有可用天气数据。",
+      "evidence_ids": []
+    }
+  ],
+  "risks": [
+    {
+      "description": "周六降雨可能影响户外景点和路面通行。",
+      "severity": "medium",
+      "evidence_ids": [
+        "ev-rain-sat-001",
+        "ev-rain-amount-sat-001"
+      ]
+    }
+  ],
+  "missing_information": [
+    "周一（2026-10-26）的天气证据"
+  ],
+  "clarification_question": null,
+  "uncertainty": [
+    "预报发布于 10 月 21 日，距离周末尚有数日，降雨时段和雨量可能变化。",
+    "周一没有可用预报，无法判断返程日的天气。"
+  ]
+}

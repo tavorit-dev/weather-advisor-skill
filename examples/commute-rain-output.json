@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0",
+  "status": "answered",
+  "intent": "commute_advice",
+  "summary": "明天早高峰上海存在较明显的降雨可能，建议带伞出门，并预留一点额外时间。",
+  "evidence": [
+    {
+      "evidence_id": "ev-rain-001",
+      "claim": "07:00–09:00 的降雨概率为 70%。"
+    },
+    {
+      "evidence_id": "ev-wind-001",
+      "claim": "同时段风速约 18 km/h。"
+    }
+  ],
+  "recommendations": [
+    {
+      "action": "通勤时携带雨伞或雨衣。",
+      "reason": "通勤时段降雨概率为 70%，步行和换乘途中可能淋湿。",
+      "evidence_ids": [
+        "ev-rain-001"
+      ]
+    },
+    {
+      "action": "比平时提前 10–15 分钟出门，优先选择有遮挡的路线。",
+      "reason": "降雨概率较高，途中停留和换乘可能比平时更慢。",
+      "evidence_ids": [
+        "ev-rain-001"
+      ]
+    }
+  ],
+  "risks": [
+    {
+      "description": "降雨可能导致路面湿滑、能见度下降，步行和骑行需留意。",
+      "severity": "medium",
+      "evidence_ids": [
+        "ev-rain-001"
+      ]
+    }
+  ],
+  "missing_information": [],
+  "clarification_question": null,
+  "uncertainty": [
+    "70% 是降雨概率，不代表一定下雨。",
+    "证据只覆盖 07:00–09:00，返程时段的天气未包含在内。"
+  ]
+}

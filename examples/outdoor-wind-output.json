@@ -1,0 +1,65 @@
+{
+  "schema_version": "1.0",
+  "status": "answered",
+  "intent": "outdoor_activity",
+  "summary": "周日下午海边骑行会受到明显风力影响：持续风约 42 km/h，阵风可达 68 km/h，建议调整时段或改走遮挡较多的内陆路线。",
+  "evidence": [
+    {
+      "evidence_id": "ev-wind-001",
+      "claim": "14:00–17:00 持续风速约 42 km/h。"
+    },
+    {
+      "evidence_id": "ev-gust-001",
+      "claim": "同时段阵风可达 68 km/h。"
+    },
+    {
+      "evidence_id": "ev-temp-001",
+      "claim": "气温约 18 °C。"
+    },
+    {
+      "evidence_id": "ev-rain-001",
+      "claim": "降雨概率为 10%，降雨不是主要影响因素。"
+    }
+  ],
+  "recommendations": [
+    {
+      "action": "把骑行改到风力较小的时段，或改走建筑物和树木遮挡较多的内陆路线。",
+      "reason": "沿海空旷路段的持续风和阵风较强，侧风会影响骑行平衡，尤其是阵风突增时。",
+      "evidence_ids": [
+        "ev-wind-001",
+        "ev-gust-001"
+      ]
+    },
+    {
+      "action": "如果仍要骑行，降低速度、避免并排骑行，并收好松动物品。",
+      "reason": "阵风可达 68 km/h，突然的侧风容易改变行驶方向，轻便物品也可能被吹走。",
+      "evidence_ids": [
+        "ev-gust-001"
+      ]
+    },
+    {
+      "action": "穿防风外层，回程注意逆风会明显增加体力消耗。",
+      "reason": "风速较大且气温约 18 °C，长时间迎风骑行会加快体感变冷。",
+      "evidence_ids": [
+        "ev-wind-001",
+        "ev-temp-001"
+      ]
+    }
+  ],
+  "risks": [
+    {
+      "description": "沿海路段阵风较强时，骑行操控和平衡可能受影响，存在摔倒风险。",
+      "severity": "medium",
+      "evidence_ids": [
+        "ev-wind-001",
+        "ev-gust-001"
+      ]
+    }
+  ],
+  "missing_information": [],
+  "clarification_question": null,
+  "uncertainty": [
+    "未提供官方大风预警信息，无法确认是否有生效中的预警。",
+    "阵风在具体路段和时段内可能更强，出发前建议复核最新预报。"
+  ]
+}

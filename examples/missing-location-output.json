@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "status": "needs_clarification",
+  "intent": "outdoor_activity",
+  "summary": "要判断明天是否适合户外跑步，需要先确认你所在的城市。",
+  "evidence": [],
+  "recommendations": [],
+  "risks": [],
+  "missing_information": [
+    "location"
+  ],
+  "clarification_question": "你明天打算在哪个城市户外跑步？",
+  "uncertainty": [
+    "不同地点的天气差异可能很大；在获得地点前无法给出有证据支持的建议。"
+  ]
+}

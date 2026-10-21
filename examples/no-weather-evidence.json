@@ -1,0 +1,10 @@
+{
+  "user_query": "今天适合去海边吗？",
+  "intent": "outdoor_activity",
+  "context": {
+    "location": "青岛",
+    "date": "2026-10-21",
+    "activity": "海边散步"
+  },
+  "weather_evidence": []
+}
