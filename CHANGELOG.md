@@ -9,14 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- English README (`README.en.md`). The Chinese and English READMEs now link to
-  each other and are maintained as a synchronized pair.
+- English README as the default (`README.md`), with the Chinese version in
+  `README.zh.md`; both are maintained as a synchronized pair.
+- Detailed guides under `docs/`: getting started and host integration,
+  architecture and design decisions, examples and test coverage, and repository
+  layout. The root README is now a short introduction that links to them.
 - Zero-dependency Open-Meteo demo (`demo/weather_demo.py`) that converts a city
   name into a skill-ready input envelope, with `live` and `offline` modes.
 - Offline Tokyo fixtures under `demo/fixtures/` and L1 data-layer tests in
   `tests/test_demo.py`.
 - `demo/README.md` documenting field mapping, attribution, licensing limits,
   and how to replace the weather provider.
+
+### Changed
+
+- Consolidated project-level constraints, pre-release checks, and contribution
+  rules in `CLAUDE.md`; they are no longer duplicated in the README.
+- Renamed the English README from `README.en.md` to `README.md`; the Chinese
+  README moved to `README.zh.md`.
+- Corrected the license reference from MIT to Apache-2.0, matching `LICENSE`.
 
 ## [0.1.0] - 2026-10-21
 

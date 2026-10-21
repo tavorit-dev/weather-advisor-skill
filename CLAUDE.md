@@ -14,11 +14,12 @@
 
 ## 语言约定
 
-- `SKILL.md`、`references/*.md`：英文。这些文件会被 Agent 直接读取，术语保持
-  与 Schema 一致。
-- `README.md`：简体中文；`README.en.md`：英文。两版必须同步修改，章节结构保持
-  一致。
-- `CLAUDE.md`、`tests/README.md`、`demo/README.md`、`CHANGELOG.md`：中文。
+- `SKILL.md`、`references/*.md`、`docs/*.md`：英文。`SKILL.md` 与
+  `references/` 会被 Agent 直接读取，术语保持与 Schema 一致。
+- `README.md`：英文，默认版本；`README.zh.md`：简体中文。两版必须同步修改，
+  章节结构保持一致。
+- `CLAUDE.md`、`tests/README.md`、`demo/README.md`：中文。
+- `CHANGELOG.md`：沿用现有英文格式（Keep a Changelog）。
 - 代码标识符、JSON 字段名、意图 ID、状态值：保持英文原样。
 
 ## 目录职责
@@ -28,7 +29,8 @@
 | 文件 | 只负责 |
 | --- | --- |
 | `SKILL.md` | 入口、工作流、通用强约束、状态选择、文件索引 |
-| `README.md` / `README.en.md` | 面向用户的项目说明；中英文两版内容同步 |
+| `README.md` / `README.zh.md` | 面向用户的项目简介；英文为默认版本，中英文同步 |
+| `docs/*.md` | 详细使用、架构、示例与测试、目录结构；不重复 `references/` 的规则 |
 | `references/intent-catalog.md` | 意图分类、必要上下文、追问时机 |
 | `references/evidence-contract.md` | 输入结构、证据字段、有效期与时效、缺失/冲突处理 |
 | `references/recommendation-rules.md` | 从事实到建议的推导、措辞原则 |
@@ -61,6 +63,9 @@ Skill 元数据写进输出契约。
    联网。
 10. demo 输出必须保留 `source`、`observed_at`、有效期和 Open-Meteo 署名；
     离线 fixture 必须标明合成数据，不能暗示为真实预报。
+
+上面 10 条是可执行的约束。面向读者的设计原则（证据优先、概率不是结论、
+缺失不等于安全等）说明在 `docs/architecture.md`；修改时不要在两处重复展开。
 
 ## 常用命令
 
@@ -101,7 +106,7 @@ python demo/weather_demo.py Tokyo --days 2
 1. `references/intent-catalog.md`：触发/排除条件、必要上下文、证据要素、行为。
 2. `schemas/recommendation.schema.json`：`intent` 枚举。
 3. `tests/cases.jsonl`：至少一条正常场景和一条缺失信息场景。
-4. `README.md`：意图表。
+4. `docs/architecture.md`：意图摘要表；README 不重复意图细节。
 5. `CHANGELOG.md`：记录变更。
 
 如果只是澄清某个意图的行为，不需要改 Schema。
@@ -110,7 +115,7 @@ python demo/weather_demo.py Tokyo --days 2
 
 - 保持 JSON Schema Draft 2020-12。
 - 破坏性变更必须提升 `schema_version` 的 `const` 值，并同步更新全部期望输出、
-  测试用例、`README.md` 和 `CHANGELOG.md`。
+  测试用例、`README.md`、`README.zh.md`、相关 `docs/` 文档和 `CHANGELOG.md`。
 - 新增可选字段时，确认 `additionalProperties: false` 不会误伤现有示例。
 - 不要放宽「answered 至少一条建议」和「clarification 必须有问题」两个条件。
 
@@ -139,15 +144,16 @@ python demo/weather_demo.py Tokyo --days 2
   `source`、`observed_at`、`valid_from`、`valid_to`。
 - 不得在 `offline` 模式或测试中发网络请求；新增 fixture 放在 `demo/fixtures/`，
   并标注为合成数据。
-- 更换默认提供方时，同步更新 `demo/README.md`、`README.md`、`README.en.md`
-  中的署名、许可和限制说明，以及 `CHANGELOG.md`。
+- 更换默认提供方时，同步更新 `demo/README.md`、`README.md`、`README.zh.md`、
+  `docs/getting-started.md` 中的署名、许可和限制说明，以及 `CHANGELOG.md`。
 - 保持“demo 不属于 Skill 核心”的边界，不要把数据获取写进 `SKILL.md`。
 
 ### 文档改动
 
 - 改规则时只改一个文件，其他文件用链接指向它。
-- 改完检查 `README.md` 与 `README.en.md` 中的目录树、示例表和测试数量是否
-  仍然准确，并确认两版内容一致。
+- 改完检查 `README.md` 与 `README.zh.md` 的章节结构、链接和数字是否一致；
+  目录树以 `docs/repository-layout.md` 为准，示例与测试数量以
+  `docs/examples-and-tests.md` 为准。
 - 变更面向用户时更新 `CHANGELOG.md`。
 
 ## 提交前验证
@@ -160,11 +166,27 @@ python tests/run_examples.py
 python tests/validate_cases.py
 ```
 
-要求两项都返回 0，并且：
+要求三条命令都返回 0，并且：
 
 - 没有悬空 `evidence_id`；
-- 示例数量、用例数量与 README 描述一致；
+- 示例数量、用例数量与 `docs/examples-and-tests.md` 描述一致；
 - 新增或修改的文档没有把同一规则复制到多个文件。
+
+## 发布前检查
+
+- 确认目标宿主支持的 Skill 格式与 frontmatter 字段。
+- 确认第三方天气数据和示例内容的授权条件。
+- 使用 demo 时保留 Open-Meteo 署名，并确认免费 API 的非商业限制、调用配额和
+  最新条款。
+- 示例中的天气数据必须保持构造数据标记，不能暗示为真实预报。
+- 修改 Schema 时同步更新 `schema_version`、示例、测试用例和 `CHANGELOG.md`。
+
+## 贡献规则
+
+- 新增或修改规则前，先按「目录职责」确认归属文件，只在它所属的文件里展开。
+- 修改 Schema 或意图后，运行全部校验命令，并同步 `CHANGELOG.md`。
+- 新增测试用例时遵循 `tests/README.md` 的格式。
+- 提交前确认没有悬空 `evidence_id`、没有虚构天气事实。
 
 ## 不要做
 
