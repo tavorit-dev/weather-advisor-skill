@@ -17,7 +17,8 @@
 - `SKILL.md`、`references/*.md`、`docs/*.md`、
   `.claude/skills/weather-advisor/SKILL.md`：英文。`SKILL.md` 与
   `references/` 会被 Agent 直接读取，术语保持与 Schema 一致。
-- `.claude/hooks/*.py`、`scripts/*.py`：代码标识符英文，注释与 docstring 英文。
+- `.claude/hooks/*.py`、`scripts/*.py`、`demo/*.py`：代码标识符英文，注释与
+  docstring 英文。
 - `README.md`：英文，默认版本；`README.zh.md`：简体中文。两版必须同步修改，
   章节结构保持一致。
 - `CLAUDE.md`、`tests/README.md`、`demo/README.md`：中文。
@@ -42,7 +43,7 @@
 | `references/safety-and-uncertainty.md` | 严重天气、风险等级、不确定性措辞 |
 | `schemas/recommendation.schema.json` | 输出字段、类型、必填项、枚举、条件约束 |
 | `examples/` | 可阅读的输入/输出对 |
-| `demo/` | Open-Meteo 演示适配器与离线 fixture；不属于 Skill 核心 |
+| `demo/` | Open-Meteo 演示适配器、离线 fixture 与紧凑证据摘要；不属于 Skill 核心 |
 | `tests/` | 验收用例与校验工具 |
 
 `SKILL.md` 的 `name`/`description` 是调用元数据，不属于响应 JSON。不要把
@@ -80,6 +81,7 @@ source .venv/bin/activate
 python -m pip install -r tests/requirements.txt
 
 python tests/test_demo.py
+python tests/test_weather_brief.py
 python tests/test_claude_integration.py
 python tests/run_examples.py
 python tests/validate_cases.py
@@ -155,6 +157,10 @@ python demo/weather_demo.py Tokyo --days 2
   以及 `CHANGELOG.md`。
 - demo 的命令行接口变化时，同步更新 `.claude/skills/weather-advisor/SKILL.md`
   中的调用示例。
+- `demo/weather_brief.py` 只是 `weather_demo.py` 证据的窗口化摘要：保留
+  `evidence_id`、`source`、`retrieved_at`、署名和许可，不生成建议，不引入新
+  数据源；字段变化时同步更新 `demo/README.md` 与
+  `docs/claude-code.md`。
 - 保持“demo 不属于 Skill 核心”的边界，不要把数据获取写进 `SKILL.md`。
 
 ### 文档改动
@@ -171,12 +177,13 @@ python demo/weather_demo.py Tokyo --days 2
 
 ```bash
 python tests/test_demo.py
+python tests/test_weather_brief.py
 python tests/test_claude_integration.py
 python tests/run_examples.py
 python tests/validate_cases.py
 ```
 
-要求四条命令都返回 0，并且：
+要求五条命令都返回 0，并且：
 
 - 没有悬空 `evidence_id`；
 - 示例数量、用例数量与 `docs/examples-and-tests.md` 描述一致；
@@ -215,3 +222,5 @@ python tests/validate_cases.py
   `.claude/skills/weather-advisor/SKILL.md`。
 - 不要默认启用 Stop Hook。Hook 是可选增强，必须在 `docs/claude-code.md` 中
   说明启用方式与限制。
+- 不要让 `demo/weather_brief.py` 输出完整证据、生成建议或替代官方预警；它只
+  做窗口化摘要，完整证据仍以 `weather_demo.py` 为准。

@@ -40,16 +40,42 @@ questions also trigger the skill through its `description`; that decision is
 made by Claude Code, not by a hook.
 
 `--live` is a convention interpreted by the skill, not a Claude Code flag. When
-the user asks for live weather, the skill runs the following from the
-repository root (the directory containing the canonical `SKILL.md`):
+the user asks for live weather, prefer the compact brief. It returns only the
+requested hours, summary statistics, and evidence IDs, so one tool call is
+usually enough:
 
 ```bash
-python3 demo/weather_demo.py <city>
+python3 demo/weather_brief.py <city> --date today|tomorrow --window HH:MM-HH:MM
 ```
 
-It may add `--days`, `--query`, or `--intent`. `--offline` uses the synthetic
-Tokyo fixture and makes no network call. If the command fails, the skill must
-explain the failure rather than invent values.
+Examples:
+
+```bash
+python3 demo/weather_brief.py Tianjin --date today --window 13:00-18:00
+python3 demo/weather_brief.py Tianjin --date tomorrow
+python3 demo/weather_brief.py Tokyo --offline --date 2026-10-22 --window 08:00-12:00
+```
+
+The brief is typically 5–10 KB, compared with roughly 50–100 KB for a live
+full-day envelope. In a Tianjin 6-hour-window check it was 6.1 KB versus 87.9 KB
+for the full live envelope (about 7%). Use `demo/weather_demo.py` only when the
+complete evidence set or a schema-ready input envelope is required.
+
+`--offline` uses the synthetic Tokyo fixture and requires an explicit date
+because the fixture is fixed. If the command fails, the skill must explain the
+failure rather than invent values.
+
+### Token-efficient consultation pattern
+
+1. Use one `weather_brief.py` call with the narrowest window the user gave.
+2. Cite the IDs in the brief; do not re-print the full evidence.
+3. Answer in the response sections; do not read the same reference files again
+   in the same session.
+4. Ask for a time window only when it materially changes the answer.
+
+The brief is a view of the demo evidence, not a new data source and not a
+recommendation engine. The full contract remains
+[`references/evidence-contract.md`](../references/evidence-contract.md).
 
 ## Response modes
 

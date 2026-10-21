@@ -19,6 +19,7 @@
 | `validate_cases.py` | 检查 `cases.jsonl` 本身的格式、枚举值和证据引用 |
 | `grade_case.py` | 用指定用例评分一份模型响应 |
 | `test_demo.py` | L1 数据层测试：离线验证 demo 的地理编码与字段转换 |
+| `test_weather_brief.py` | 紧凑摘要测试：离线验证窗口过滤、统计值、证据 ID 与体积 |
 | `test_claude_integration.py` | Claude Code 入口、安装脚本与可选 Hook 的集成测试 |
 | `requirements.txt` | Python 依赖（`test_demo.py` 只用标准库） |
 
@@ -36,7 +37,7 @@ python -m pip install -r tests/requirements.txt
 
 | 层次 | 测试内容 | 命令 | 需要 LLM |
 | --- | --- | --- | --- |
-| L1 数据层 | 地理编码、天气 API 返回有效数据、字段与单位转换、证据 ID 唯一性 | `python tests/test_demo.py` | 否 |
+| L1 数据层 | 地理编码、天气 API 返回有效数据、字段与单位转换、证据 ID 唯一性、紧凑摘要窗口过滤 | `python tests/test_demo.py`、`python tests/test_weather_brief.py` | 否 |
 | L2 规则层 | 地点缺失时追问、证据缺失时不编造、证据引用有效、输出结构 | `python tests/run_examples.py`、`python tests/validate_cases.py`、`python tests/grade_case.py` | 否，使用固定输入/输出 |
 | L3 Agent 层 | 实际加载 `SKILL.md` 后，能否基于真实或固定天气数据给出合理建议 | 由开发者用自己选择的 Agent 运行 | 是 |
 
@@ -50,7 +51,10 @@ python -m pip install -r tests/requirements.txt
 # 0. L1 数据层：离线 fixture，无需第三方依赖
 python tests/test_demo.py
 
-# 0b. Claude Code 入口、安装脚本与 Hook（Hook 用例在缺少 jsonschema 时跳过）
+# 0b. 紧凑证据摘要（离线）
+python tests/test_weather_brief.py
+
+# 0c. Claude Code 入口、安装脚本与 Hook（Hook 用例在缺少 jsonschema 时跳过）
 python tests/test_claude_integration.py
 
 # 1. 校验全部示例

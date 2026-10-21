@@ -93,6 +93,42 @@ python demo/weather_demo.py Tokyo \
 `live` 模式返回的是 Open-Meteo 给出的完整逐小时窗口，通常从当地 00:00 开始，
 因此可能包含当天已经过去的时段。只关心未来时段时，按 `valid_from` 过滤即可。
 
+## 紧凑摘要（weather_brief.py）
+
+完整信封适合校验和调试，但把 144–288 条逐小时证据直接交给 Agent 会消耗较多
+上下文。`weather_brief.py` 是同一份证据的窗口化视图：只保留指定日期/时段的
+小时数据、统计值和证据 ID。
+
+```bash
+# 今天剩余时段
+python demo/weather_brief.py Tianjin --date today
+
+# 指定窗口
+python demo/weather_brief.py Tianjin --date tomorrow --window 10:00-16:00
+
+# 离线 fixture（日期固定为 2026-10-22）
+python demo/weather_brief.py Tokyo --offline --date 2026-10-22 --window 08:00-12:00
+```
+
+输出包含：
+
+- `coverage`：日期、窗口、包含小时数、源证据覆盖范围；
+- `summary`：温度/体感的 min/max、降雨概率最大值、降水量合计、风速/阵风最大值；
+- `hours`：每个小时的数值与对应 `evidence_id`；
+- `source`：提供方、模式、获取时间、署名与许可；
+- `demo_gaps`：demo 不提供的证据类型（官方预警、空气质量、紫外线等）。
+
+与完整 envelope 的区别：
+
+| 项目 | `weather_demo.py` | `weather_brief.py` |
+| --- | --- | --- |
+| 输出 | 完整 `weather_evidence` | 窗口化摘要 + 证据 ID |
+| 体积（实测） | 约 22 KB（离线 12 小时）/ 50–100 KB（实时全天） | 约 5–10 KB |
+| 用途 | 校验、调试、完整输入 | Agent 日常咨询 |
+
+`weather_brief.py` 不产生建议，也不替代官方预警或空气质量数据；它只是
+`weather_demo.py` 证据的紧凑投影。两者都保留 Open-Meteo 署名和许可信息。
+
 ## 交给 Agent 使用
 
 ```bash
