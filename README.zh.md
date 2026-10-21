@@ -104,6 +104,26 @@ Agent 返回一个符合
 }
 ```
 
+## Claude Code
+
+仓库在 `.claude/skills/weather-advisor/SKILL.md` 提供 Claude Code 项目级
+Skill。在仓库根目录打开会话后可直接使用斜杠命令：
+
+```text
+/weather-advisor Tokyo outdoor running tomorrow
+/weather-advisor --live Osaka travel tomorrow
+```
+
+自然语言天气问题也会触发该 Skill。安装到个人目录：
+
+```bash
+python3 scripts/install_claude_skill.py
+```
+
+可选的 Stop Hook 可在用户要求 JSON 时按 Schema 校验响应，默认不启用。实时
+模式、安装方式、Hook 配置与验收步骤见
+[`docs/claude-code.md`](docs/claude-code.md)。
+
 ## 包含什么
 
 - 标准 `SKILL.md` 及元数据；
@@ -124,6 +144,7 @@ Web 服务或数据库、针对特定模型的 Prompt 调优。完整范围与�
 | --- | --- |
 | [`SKILL.md`](SKILL.md) | Agent 读取的入口、工作流与强约束 |
 | [`docs/getting-started.md`](docs/getting-started.md) | 宿主接入、完整输入输出、演示与校验 |
+| [`docs/claude-code.md`](docs/claude-code.md) | Claude Code 入口、`/weather-advisor`、安装脚本与可选 Hook |
 | [`docs/architecture.md`](docs/architecture.md) | 范围、工作流、状态模型、意图、设计决策 |
 | [`docs/examples-and-tests.md`](docs/examples-and-tests.md) | 示例、测试覆盖与三层测试 |
 | [`docs/repository-layout.md`](docs/repository-layout.md) | 带注释的仓库结构 |
