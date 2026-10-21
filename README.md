@@ -176,6 +176,9 @@ needs no API key.
 python demo/weather_demo.py Tokyo
 python demo/weather_demo.py "New York" --days 2
 python demo/weather_demo.py Tokyo --offline
+
+# Compact, windowed evidence for agent consultations
+python demo/weather_brief.py Tokyo --date today --window 10:00-16:00
 ```
 
 Weather data by [Open-Meteo.com](https://open-meteo.com/), licensed under

@@ -34,8 +34,9 @@ Total: 32 cases in [`tests/cases.jsonl`](../tests/cases.jsonl).
 
 ## Three test layers
 
-- **L1 — data layer.** `tests/test_demo.py`, offline fixtures, no third-party
-  dependency and no network access.
+- **L1 — data layer.** `tests/test_demo.py` and
+  `tests/test_weather_brief.py`, offline fixtures, no third-party dependency and
+  no network access.
 - **L2 — rule layer.** Examples, cases, and validators; no model required.
 - **L3 — agent layer.** Run by a developer with an actual agent and graded per
   case with `tests/grade_case.py`.
