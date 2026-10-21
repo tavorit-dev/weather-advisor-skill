@@ -3,7 +3,6 @@
 </p>
 
 <h1 align="center">
-  <img src="images/logo.png" alt="weather-advisor-skill logo" width="56" valign="middle">
   weather-advisor-skill
 </h1>
 
