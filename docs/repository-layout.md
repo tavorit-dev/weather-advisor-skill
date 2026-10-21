@@ -45,6 +45,7 @@ weather-advisor-skill/
 │   └── no-weather-evidence-output.json
 ├── demo/                          # Key-free demo: Open-Meteo -> evidence
 │   ├── weather_demo.py
+│   ├── weather_brief.py           # Compact windowed evidence view for agents
 │   ├── fixtures/
 │   │   ├── geocoding-tokyo.json
 │   │   └── forecast-tokyo.json
@@ -57,6 +58,7 @@ weather-advisor-skill/
     ├── validate_cases.py          # Case file linting
     ├── grade_case.py              # Grade one response against one case
     ├── test_demo.py               # L1 data-layer tests (offline)
+    ├── test_weather_brief.py      # Compact brief tests (offline)
     ├── test_claude_integration.py # Claude Code entry, installer, and hook tests
     ├── requirements.txt
     └── README.md

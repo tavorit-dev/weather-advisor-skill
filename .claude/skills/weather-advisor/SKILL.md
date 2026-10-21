@@ -30,16 +30,21 @@ Natural-language weather questions should also trigger this skill.
 
 ## Live weather
 
-When the user asks for live weather (for example with `--live`), run the demo
-from the repository root (the directory containing the canonical `SKILL.md`)
-and use only the evidence it returns:
+For a live consultation, prefer the compact brief. It returns only the requested
+hours, summary statistics, and evidence IDs, so one tool call is usually enough:
 
 ```bash
-python3 demo/weather_demo.py <city>
+python3 demo/weather_brief.py <city> --date today|tomorrow --window HH:MM-HH:MM
 ```
 
-Add `--days` (1–7), `--query`, and `--intent` as needed. `--offline` uses the
-bundled synthetic Tokyo fixtures and makes no network call.
+- Pass `--window` when the user names a time range; omit it for today's
+  remaining hours or a full future day.
+- If the user gives no date, use `--date today`; for "明天" use
+  `--date tomorrow`.
+- `--offline` uses the bundled synthetic Tokyo fixture and requires an explicit
+  date (`--date 2026-10-22`).
+- Use `demo/weather_demo.py` only when the full envelope or complete evidence is
+  needed.
 
 If the command fails, explain the failure and do not substitute invented
 values. The demo is a replaceable adapter, not part of the skill's rules.

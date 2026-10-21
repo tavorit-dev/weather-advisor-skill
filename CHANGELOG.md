@@ -32,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   configuration, and verification.
 - `tests/test_claude_integration.py` covering the entry metadata, installer,
   and hook behavior.
+- `demo/weather_brief.py`, a compact windowed view of the demo evidence with
+  summary statistics and evidence IDs, plus `tests/test_weather_brief.py`.
+  It reduces live-consultation round trips and context size without adding a
+  new data source.
 
 ### Changed
 

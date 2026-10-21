@@ -148,6 +148,17 @@ depend on network tools, and whether an agent can call external tools is up to
 the host. See [`demo/README.md`](../demo/README.md) for field mapping, licensing
 limits, and how to replace the provider.
 
+For a compact, token-efficient view of the same evidence, use
+`demo/weather_brief.py`:
+
+```bash
+python demo/weather_brief.py Tianjin --date tomorrow --window 10:00-16:00
+```
+
+It returns only the requested hours, summary statistics, and evidence IDs. See
+[`claude-code.md`](claude-code.md#token-efficient-consultation-pattern) for the
+recommended consultation pattern.
+
 ### Data source and licensing
 
 - Weather data is provided by [Open-Meteo](https://open-meteo.com/) under the

@@ -56,6 +56,7 @@ class InstallerTests(unittest.TestCase):
             self.assertNotIn("../../../SKILL.md", entry)
             self.assertTrue((dest / "CANONICAL-SKILL.md").is_file())
             self.assertTrue((dest / "references" / "intent-catalog.md").is_file())
+            self.assertTrue((dest / "demo" / "weather_brief.py").is_file())
             self.assertFalse((dest / ".claude").exists())
 
             demo = run(dest / "demo" / "weather_demo.py", "Tokyo", "--offline")
@@ -63,6 +64,18 @@ class InstallerTests(unittest.TestCase):
             envelope = json.loads(demo.stdout)
             self.assertEqual(envelope["metadata"]["mode"], "offline")
             self.assertIn("synthetic", envelope["metadata"]["data_note"])
+
+            brief = run(
+                dest / "demo" / "weather_brief.py",
+                "Tokyo",
+                "--offline",
+                "--date",
+                "2026-10-22",
+                "--window",
+                "08:00-12:00",
+            )
+            self.assertEqual(brief.returncode, 0, brief.stderr)
+            self.assertEqual(json.loads(brief.stdout)["coverage"]["hours_included"], 4)
 
     def test_installer_refuses_to_overwrite_without_force(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
