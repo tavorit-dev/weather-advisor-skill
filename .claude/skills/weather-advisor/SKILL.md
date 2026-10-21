@@ -34,11 +34,23 @@ For a live consultation, prefer the compact brief. It returns only the requested
 hours, summary statistics, and evidence IDs, so one tool call is usually enough:
 
 ```bash
-python3 demo/weather_brief.py <city> --date today|tomorrow --window HH:MM-HH:MM
+# User named a time range: keep hourly rows
+python3 demo/weather_brief.py <city> --date today --window 13:00-18:00 --compact
+
+# Whole day with no time range: keep a 3-hour curve
+python3 demo/weather_brief.py <city> --date tomorrow --every 3 --compact
+
+# Only extremes are needed: summary only
+python3 demo/weather_brief.py <city> --date tomorrow --summary-only --compact
 ```
 
-- Pass `--window` when the user names a time range; omit it for today's
-  remaining hours or a full future day.
+- Always add `--compact` to keep the JSON small.
+- Pass `--window` when the user names a time range; include hourly rows for that
+  window.
+- When the user asks about a whole day without a time range, use `--every 3` so
+  the day curve remains visible without 24 rows.
+- Use `--summary-only` only when the question needs extremes or a yes/no, not a
+  time-of-day recommendation.
 - If the user gives no date, use `--date today`; for "明天" use
   `--date tomorrow`.
 - `--offline` uses the bundled synthetic Tokyo fixture and requires an explicit
@@ -67,6 +79,10 @@ values. When the user asks for JSON, return one object conforming to
 ```bash
 python3 tests/validate_schema.py <file>
 ```
+
+Keep a simple suitability answer compact: lead with the recommended window,
+cite 3–5 key values, give 3–4 recommendations and 2–3 risks. Do not enumerate
+every hour; expand only when the user asks for detail.
 
 ## Constraints
 

@@ -161,6 +161,9 @@ python demo/weather_demo.py Tokyo --days 2
   `evidence_id`、`source`、`retrieved_at`、署名和许可，不生成建议，不引入新
   数据源；字段变化时同步更新 `demo/README.md` 与
   `docs/claude-code.md`。
+- `--summary-only` 只能省略 `hours`，不得省略 `summary`、`source`、`demo_gaps`
+  或证据 ID；`--compact` 只改变 JSON 序列化，不改变字段；`--every N` 只能
+  稀疏化 `hours`，`summary` 必须继续覆盖整个窗口。
 - 保持“demo 不属于 Skill 核心”的边界，不要把数据获取写进 `SKILL.md`。
 
 ### 文档改动

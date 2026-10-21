@@ -165,7 +165,7 @@ python demo/weather_demo.py "New York" --days 2
 python demo/weather_demo.py Tokyo --offline
 
 # 面向 Agent 咨询的紧凑窗口化证据
-python demo/weather_brief.py Tokyo --date today --window 10:00-16:00
+python demo/weather_brief.py Tokyo --date today --window 10:00-16:00 --compact
 ```
 
 天气数据由 [Open-Meteo.com](https://open-meteo.com/) 提供，许可为 CC BY 4.0。
