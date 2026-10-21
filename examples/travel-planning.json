@@ -1,0 +1,92 @@
+{
+  "user_query": "周末去杭州玩，需要准备什么？",
+  "intent": "travel_planning",
+  "context": {
+    "location": "杭州",
+    "timezone": "Asia/Shanghai",
+    "start": "2026-10-24T00:00:00+08:00",
+    "end": "2026-10-26T23:59:00+08:00",
+    "activity": "城市观光，周末两天主要在户外"
+  },
+  "weather_evidence": [
+    {
+      "id": "ev-rain-sat-001",
+      "type": "precipitation_probability",
+      "value": 80,
+      "unit": "%",
+      "valid_from": "2026-10-24T08:00:00+08:00",
+      "valid_to": "2026-10-24T20:00:00+08:00",
+      "source": "example-provider",
+      "observed_at": "2026-10-21T18:00:00+08:00"
+    },
+    {
+      "id": "ev-rain-amount-sat-001",
+      "type": "precipitation_amount",
+      "value": 12,
+      "unit": "mm",
+      "valid_from": "2026-10-24T08:00:00+08:00",
+      "valid_to": "2026-10-24T20:00:00+08:00",
+      "source": "example-provider",
+      "observed_at": "2026-10-21T18:00:00+08:00"
+    },
+    {
+      "id": "ev-temp-sat-min-001",
+      "type": "temperature_min",
+      "value": 16,
+      "unit": "°C",
+      "valid_from": "2026-10-24T00:00:00+08:00",
+      "valid_to": "2026-10-24T23:59:00+08:00",
+      "source": "example-provider",
+      "observed_at": "2026-10-21T18:00:00+08:00"
+    },
+    {
+      "id": "ev-temp-sat-max-001",
+      "type": "temperature_max",
+      "value": 21,
+      "unit": "°C",
+      "valid_from": "2026-10-24T00:00:00+08:00",
+      "valid_to": "2026-10-24T23:59:00+08:00",
+      "source": "example-provider",
+      "observed_at": "2026-10-21T18:00:00+08:00"
+    },
+    {
+      "id": "ev-temp-sun-min-001",
+      "type": "temperature_min",
+      "value": 15,
+      "unit": "°C",
+      "valid_from": "2026-10-25T00:00:00+08:00",
+      "valid_to": "2026-10-25T23:59:00+08:00",
+      "source": "example-provider",
+      "observed_at": "2026-10-21T18:00:00+08:00"
+    },
+    {
+      "id": "ev-temp-sun-max-001",
+      "type": "temperature_max",
+      "value": 22,
+      "unit": "°C",
+      "valid_from": "2026-10-25T00:00:00+08:00",
+      "valid_to": "2026-10-25T23:59:00+08:00",
+      "source": "example-provider",
+      "observed_at": "2026-10-21T18:00:00+08:00"
+    },
+    {
+      "id": "ev-uv-sun-001",
+      "type": "uv_index",
+      "value": 6,
+      "valid_from": "2026-10-25T10:00:00+08:00",
+      "valid_to": "2026-10-25T16:00:00+08:00",
+      "source": "example-provider",
+      "observed_at": "2026-10-21T18:00:00+08:00"
+    },
+    {
+      "id": "ev-wind-sun-001",
+      "type": "wind_speed",
+      "value": 15,
+      "unit": "km/h",
+      "valid_from": "2026-10-25T00:00:00+08:00",
+      "valid_to": "2026-10-25T23:59:00+08:00",
+      "source": "example-provider",
+      "observed_at": "2026-10-21T18:00:00+08:00"
+    }
+  ]
+}
