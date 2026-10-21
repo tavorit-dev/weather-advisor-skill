@@ -112,6 +112,29 @@ Every recommendation and risk cites the `evidence_id` values it rests on.
 }
 ```
 
+## Claude Code
+
+This repository ships a Claude Code project skill at
+`.claude/skills/weather-advisor/SKILL.md`. Open a session at the repository
+root and use the slash command:
+
+```text
+/weather-advisor Tokyo outdoor running tomorrow
+/weather-advisor --live Osaka travel tomorrow
+```
+
+Natural-language weather questions also trigger it. Install it for personal use
+with:
+
+```bash
+python3 scripts/install_claude_skill.py
+```
+
+An optional Stop hook can validate a requested JSON response against the
+schema; it is disabled by default. See
+[`docs/claude-code.md`](docs/claude-code.md) for live mode, installation,
+hooks, and verification.
+
 ## What is included
 
 - a standard `SKILL.md` with metadata;
@@ -133,6 +156,7 @@ model-specific prompt tuning. See
 | --- | --- |
 | [`SKILL.md`](SKILL.md) | Entry point, workflow, and hard rules read by the agent |
 | [`docs/getting-started.md`](docs/getting-started.md) | Host integration, full input/output examples, demo, validation |
+| [`docs/claude-code.md`](docs/claude-code.md) | Claude Code entry, `/weather-advisor`, install script, optional hook |
 | [`docs/architecture.md`](docs/architecture.md) | Scope, workflow, status model, intents, design decisions |
 | [`docs/examples-and-tests.md`](docs/examples-and-tests.md) | Example pairs, test coverage, three test layers |
 | [`docs/repository-layout.md`](docs/repository-layout.md) | Annotated repository tree |

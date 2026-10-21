@@ -19,6 +19,7 @@
 | `validate_cases.py` | 检查 `cases.jsonl` 本身的格式、枚举值和证据引用 |
 | `grade_case.py` | 用指定用例评分一份模型响应 |
 | `test_demo.py` | L1 数据层测试：离线验证 demo 的地理编码与字段转换 |
+| `test_claude_integration.py` | Claude Code 入口、安装脚本与可选 Hook 的集成测试 |
 | `requirements.txt` | Python 依赖（`test_demo.py` 只用标准库） |
 
 ## 安装
@@ -48,6 +49,9 @@ python -m pip install -r tests/requirements.txt
 ```bash
 # 0. L1 数据层：离线 fixture，无需第三方依赖
 python tests/test_demo.py
+
+# 0b. Claude Code 入口、安装脚本与 Hook（Hook 用例在缺少 jsonschema 时跳过）
+python tests/test_claude_integration.py
 
 # 1. 校验全部示例
 python tests/run_examples.py

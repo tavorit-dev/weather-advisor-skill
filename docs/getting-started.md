@@ -19,6 +19,10 @@ cp -r weather-advisor-skill ~/.claude/skills/weather-advisor
 The skill's `name` is `weather-advisor`. If the host requires the directory
 name to match, rename the directory to `weather-advisor`.
 
+For Claude Code specifically, this repository also ships a project skill,
+`/weather-advisor` slash command, optional hook, and install script. See
+[`claude-code.md`](claude-code.md).
+
 ## Supply weather evidence
 
 The skill never fetches weather data itself. The host provides the query,
