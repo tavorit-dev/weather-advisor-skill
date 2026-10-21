@@ -1,6 +1,13 @@
-# weather-advisor-skill
+<p align="center">
+  <img src="images/banner.png" alt="天气智言 — evidence-based weather advice" width="100%">
+</p>
 
-English | [简体中文](README.zh.md)
+<h1 align="center">
+  <img src="images/logo.png" alt="weather-advisor-skill logo" width="56" valign="middle">
+  weather-advisor-skill
+</h1>
+
+<p align="center">English | <a href="README.zh.md">简体中文</a></p>
 
 Make Skill-compatible agents give weather advice that starts with evidence and
 ends with machine-checkable output.
