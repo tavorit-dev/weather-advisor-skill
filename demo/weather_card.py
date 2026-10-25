@@ -64,6 +64,17 @@ STRINGS: dict[str, dict[str, str]] = {
         "particulate_matter_10": "PM10",
         "us_aqi": "US AQI",
         "european_aqi": "European AQI",
+        "weather_lookup": "weather lookup",
+        "clothing_advice": "clothing advice",
+        "commute_advice": "commute advice",
+        "outdoor_activity": "outdoor activity",
+        "travel_planning": "travel planning",
+        "general_weather_advice": "general weather advice",
+        "detail_hourly": "hourly",
+        "detail_sparse": "sparse",
+        "detail_summary": "summary",
+        "mode_live": "live",
+        "mode_offline": "offline",
         "window_evidence": "Window evidence",
         "no_summary_values": "The brief carries no summary values.",
         "no_curves": "The brief has no hourly rows, so no curves are shown.",
@@ -128,6 +139,17 @@ STRINGS: dict[str, dict[str, str]] = {
         "particulate_matter_10": "PM10",
         "us_aqi": "US AQI",
         "european_aqi": "European AQI",
+        "weather_lookup": "天气查询",
+        "clothing_advice": "穿衣建议",
+        "commute_advice": "通勤建议",
+        "outdoor_activity": "户外活动",
+        "travel_planning": "出行规划",
+        "general_weather_advice": "通用天气建议",
+        "detail_hourly": "逐小时",
+        "detail_sparse": "稀疏采样",
+        "detail_summary": "仅统计值",
+        "mode_live": "实时",
+        "mode_offline": "离线",
         "window_evidence": "时段证据",
         "no_summary_values": "该摘要不含统计值。",
         "no_curves": "该摘要没有逐小时数据，因此不绘制曲线。",
@@ -323,6 +345,34 @@ def fmt_clock(value: Any) -> str:
         return "—"
 
 
+# Brief enums whose string keys are namespaced to avoid colliding with the
+# response enums: `detail` and `mode` both carry short common words.
+NAMESPACED_KEYS = {
+    ("detail", "hourly"): "detail_hourly",
+    ("detail", "sparse"): "detail_sparse",
+    ("detail", "summary"): "detail_summary",
+    ("mode", "live"): "mode_live",
+    ("mode", "offline"): "mode_offline",
+}
+
+
+def label_for(
+    t: Translator, value: Any, *, namespace: str = "", fallback: str = ""
+) -> str:
+    """Translate a schema or brief enum value, falling back to the raw value.
+
+    Enum values come from the response and the brief, so an unrecognised one is
+    shown as-is rather than as an empty label: a value the card does not know
+    is still better than a blank where the reader expects one.
+    """
+    if not isinstance(value, str) or not value:
+        return fallback
+    key = NAMESPACED_KEYS.get((namespace, value), value)
+    if key in STRINGS[t.lang]:
+        return t(key)
+    return value.replace("_", " ") if "_" in value else value
+
+
 def metric_values(label: str, values: dict[str, Any]) -> list[float]:
     """Return the numeric series for one row label across the brief's hours."""
     series: list[float] = []
@@ -460,11 +510,17 @@ def window_html(brief: dict[str, Any], t: Translator) -> str:
 
     window = esc(coverage.get("window", "—"))
     date = esc(coverage.get("date", "—"))
-    detail = esc(coverage.get("detail", "—"))
+    # detail and mode are brief enums, so they are translated by value; a
+    # value the card does not know falls through unchanged rather than blank.
+    detail = esc(
+        label_for(t, coverage.get("detail"), namespace="detail", fallback="—")
+    )
     step = coverage.get("step_hours")
     included = coverage.get("hours_included")
     in_window = coverage.get("hours_in_window")
-    mode = esc((brief.get("source") or {}).get("mode", "—"))
+    mode = esc(
+        label_for(t, (brief.get("source") or {}).get("mode"), namespace="mode", fallback="—")
+    )
     name = esc(location.get("name", "—"))
     timezone = esc(location.get("timezone", "—"))
 
@@ -592,7 +648,7 @@ def body_html(
     question = response.get("clarification_question")
 
     status = esc(t(response["status"]))
-    intent = esc(str(response["intent"]).replace("_", " "))
+    intent = esc(label_for(t, response["intent"]))
     version = esc(response.get("schema_version", ""))
 
     location = ""
