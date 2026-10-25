@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -15,8 +16,13 @@ ROOT = Path(__file__).resolve().parents[1]
 HOOK = ROOT / ".claude" / "hooks" / "validate-weather-output.py"
 INSTALLER = ROOT / "scripts" / "install_claude_skill.py"
 ENTRY = ROOT / ".claude" / "skills" / "weather-advisor" / "SKILL.md"
+CARD_ENTRY = ROOT / ".claude" / "skills" / "weather-advisor-card" / "SKILL.md"
 VALID_OUTPUT = ROOT / "examples" / "commute-rain-output.json"
 HAS_JSONSCHEMA = importlib.util.find_spec("jsonschema") is not None
+CANONICAL_LINK_RE = re.compile(r"`([\w./-]*CANONICAL-SKILL\.md)`")
+REPO_PATH_RE = re.compile(
+    r"`((?:\.\./)*(?:demo|tests|schemas|references|examples|docs|scripts)/[\w./-]+)`"
+)
 
 
 def run(*args: object, stdin: str | None = None) -> subprocess.CompletedProcess[str]:
@@ -43,6 +49,26 @@ class EntryTests(unittest.TestCase):
         for field in ("argument-hint:", "disable-model-invocation:", "user-invocable:"):
             self.assertNotIn(field, text)
 
+    def test_card_entry_delegates_to_the_canonical_skill(self) -> None:
+        text = CARD_ENTRY.read_text(encoding="utf-8")
+        self.assertIn("name: weather-advisor-card", text)
+        self.assertIn("argument-hint:", text)
+        self.assertIn("../../../SKILL.md", text)
+        self.assertIn("demo/weather_card.py", text)
+        # The card must not become a second place that defines the rules.
+        self.assertIn("demo/weather_brief.py", text)
+        self.assertIn("tests/validate_schema.py", text)
+
+    def test_skills_do_not_duplicate_the_canonical_rules(self) -> None:
+        canonical = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        for path in (ENTRY, CARD_ENTRY):
+            with self.subTest(entry=path.parent.name):
+                text = path.read_text(encoding="utf-8")
+                # Statuses are defined once, in the canonical skill.
+                self.assertNotIn("Choosing a status", text)
+                self.assertIn("SKILL.md", text)
+        self.assertIn("Choosing a status", canonical)
+
 
 class InstallerTests(unittest.TestCase):
     def test_installer_creates_a_self_contained_skill(self) -> None:
@@ -58,6 +84,34 @@ class InstallerTests(unittest.TestCase):
             self.assertTrue((dest / "references" / "intent-catalog.md").is_file())
             self.assertTrue((dest / "demo" / "weather_brief.py").is_file())
             self.assertFalse((dest / ".claude").exists())
+
+            # The card command is installed alongside, and its link to the
+            # canonical skill is rewritten for its own depth.
+            card = (dest / "card" / "SKILL.md").read_text(encoding="utf-8")
+            self.assertIn("name: weather-advisor-card", card)
+            self.assertIn("`../CANONICAL-SKILL.md`", card)
+            self.assertNotIn("../../../SKILL.md", card)
+
+            # Both rewritten links must actually resolve inside the install,
+            # along with every repository path either entry references.
+            for entry, base in (
+                (dest / "SKILL.md", dest),
+                (dest / "card" / "SKILL.md", dest / "card"),
+            ):
+                with self.subTest(entry=entry.relative_to(dest).as_posix()):
+                    text = entry.read_text(encoding="utf-8")
+                    links = CANONICAL_LINK_RE.findall(text)
+                    self.assertTrue(links, "entry does not link the canonical skill")
+                    links += REPO_PATH_RE.findall(text)
+                    self.assertTrue(
+                        any("/demo/" in f"/{link}" for link in links),
+                        "entry does not reference the demo",
+                    )
+                    for link in links:
+                        self.assertTrue(
+                            (base / link).resolve().exists(),
+                            f"{link} does not resolve from {base}",
+                        )
 
             demo = run(dest / "demo" / "weather_demo.py", "Tokyo", "--offline")
             self.assertEqual(demo.returncode, 0, demo.stderr)
@@ -77,6 +131,41 @@ class InstallerTests(unittest.TestCase):
             )
             self.assertEqual(brief.returncode, 0, brief.stderr)
             self.assertEqual(json.loads(brief.stdout)["coverage"]["hours_included"], 4)
+
+    def test_installed_card_command_renders(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            dest = Path(directory) / "weather-advisor"
+            result = run(INSTALLER, "--dest", dest)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+            brief = run(
+                dest / "demo" / "weather_brief.py",
+                "Tokyo",
+                "--offline",
+                "--date",
+                "2026-10-22",
+                "--every",
+                "3",
+                "--compact",
+            )
+            self.assertEqual(brief.returncode, 0, brief.stderr)
+            brief_path = Path(directory) / "brief.json"
+            brief_path.write_text(brief.stdout, encoding="utf-8")
+
+            card_path = Path(directory) / "card.html"
+            card = run(
+                dest / "demo" / "weather_card.py",
+                dest / "examples" / "commute-rain-output.json",
+                "--brief",
+                brief_path,
+                "--output",
+                card_path,
+            )
+            self.assertEqual(card.returncode, 0, card.stderr)
+            self.assertTrue(card_path.is_file())
+            text = card_path.read_text(encoding="utf-8")
+            self.assertIn("</html>", text)
+            self.assertIn("Open-Meteo", text)
 
     def test_installer_refuses_to_overwrite_without_force(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -128,6 +128,13 @@ Skill。在仓库根目录打开会话后可直接使用斜杠命令：
 /weather-advisor --live Osaka travel tomorrow
 ```
 
+`/weather-advisor-card` 把结构化响应渲染成一张自包含的 HTML 卡片，可叠加
+窗口化证据，显示逐小时曲线：
+
+```text
+/weather-advisor-card /tmp/response.json --brief /tmp/brief.json --open
+```
+
 自然语言天气问题也会触发该 Skill。安装到个人目录：
 
 ```bash
@@ -135,7 +142,7 @@ python3 scripts/install_claude_skill.py
 ```
 
 可选的 Stop Hook 可在用户要求 JSON 时按 Schema 校验响应，默认不启用。实时
-模式、安装方式、Hook 配置与验收步骤见
+模式、卡片渲染、安装方式、Hook 配置与验收步骤见
 [`docs/claude-code.md`](docs/claude-code.md)。
 
 ## 包含什么
@@ -158,7 +165,7 @@ Web 服务或数据库、针对特定模型的 Prompt 调优。完整范围与�
 | --- | --- |
 | [`SKILL.md`](SKILL.md) | Agent 读取的入口、工作流与强约束 |
 | [`docs/getting-started.md`](docs/getting-started.md) | 宿主接入、完整输入输出、演示与校验 |
-| [`docs/claude-code.md`](docs/claude-code.md) | Claude Code 入口、`/weather-advisor`、安装脚本与可选 Hook |
+| [`docs/claude-code.md`](docs/claude-code.md) | Claude Code 入口、`/weather-advisor`、卡片、安装脚本与可选 Hook |
 | [`docs/architecture.md`](docs/architecture.md) | 范围、工作流、状态模型、意图、设计决策 |
 | [`docs/examples-and-tests.md`](docs/examples-and-tests.md) | 示例、测试覆盖与三层测试 |
 | [`docs/repository-layout.md`](docs/repository-layout.md) | 带注释的仓库结构 |
@@ -184,10 +191,14 @@ python demo/weather_demo.py Tokyo --offline
 
 # 面向 Agent 咨询的紧凑窗口化证据
 python demo/weather_brief.py Tokyo --date today --window 10:00-16:00 --compact
+
+# 把响应渲染成可视化卡片
+python demo/weather_card.py response.json --brief brief.json --output card.html
 ```
 
 `weather_brief.py` 只返回指定时段的小时数据、统计值和证据 ID。紧凑模式通常
-在 3–20 KB，而实时全天信封约 44–86 KB。咨询流程见
+在 3–20 KB，而实时全天信封约 44–86 KB。`weather_card.py` 把这些证据连同响应
+渲染成一张自包含 HTML 卡片，不引入新数据。咨询流程见
 [`docs/claude-code.md`](docs/claude-code.md#token-efficient-consultation-pattern)。
 
 天气与空气质量数据由 [Open-Meteo.com](https://open-meteo.com/) 提供，许可为
@@ -204,12 +215,13 @@ python -m pip install -r tests/requirements.txt
 
 python tests/test_demo.py
 python tests/test_weather_brief.py
+python tests/test_weather_card.py
 python tests/test_claude_integration.py
 python tests/run_examples.py
 python tests/validate_cases.py
 ```
 
-五条命令都必须返回 0。单文件校验与逐用例评分见
+六条命令都必须返回 0。单文件校验与逐用例评分见
 [`docs/getting-started.md`](docs/getting-started.md)。
 
 ## 版本与许可证

@@ -1,12 +1,13 @@
 # Claude Code Integration
 
-This page documents the Claude Code layer described in the design: a
-project-level skill, a `/weather-advisor` entry, the live-weather demo, an
-optional Stop hook, and a personal install script.
+This page documents the Claude Code layer described in the design: two
+project-level skills, the `/weather-advisor` and `/weather-advisor-card`
+entries, the live-weather demo, an optional Stop hook, and a personal install
+script.
 
-The canonical skill remains [`SKILL.md`](../SKILL.md). The Claude Code entry is
-a thin wrapper around it, so the workflow, evidence rules, and output contract
-are defined in one place.
+The canonical skill remains [`SKILL.md`](../SKILL.md). The Claude Code entries
+are thin wrappers around it, so the workflow, evidence rules, and output
+contract are defined in one place.
 
 ## Layout
 
@@ -14,8 +15,10 @@ are defined in one place.
 .claude/
 ├── settings.json                       # Hooks are opt-in; empty by default
 ├── skills/
-│   └── weather-advisor/
-│       └── SKILL.md                    # Claude Code entry and /weather-advisor
+│   ├── weather-advisor/
+│   │   └── SKILL.md                    # Claude Code entry and /weather-advisor
+│   └── weather-advisor-card/
+│       └── SKILL.md                    # /weather-advisor-card
 └── hooks/
     └── validate-weather-output.py      # Optional response validator / Stop hook
 scripts/
@@ -127,9 +130,55 @@ and validate it:
 python3 tests/validate_schema.py response.json
 ```
 
+## Visual card
+
+`/weather-advisor-card` renders a response as one self-contained HTML card. It
+is a second entry, `.claude/skills/weather-advisor-card/SKILL.md`, and it
+delegates the rules to the same canonical `SKILL.md`:
+
+```text
+/weather-advisor-card /tmp/response.json --brief /tmp/brief.json --open
+/weather-advisor-card 上海 通勤 明天 --open
+```
+
+The renderer is [`demo/weather_card.py`](../demo/weather_card.py), part of the
+replaceable demo layer:
+
+```bash
+python3 demo/weather_card.py response.json --brief brief.json --output card.html
+python3 demo/weather_card.py --check card.html
+```
+
+- **Response only.** Without `--brief` the card shows the summary, status,
+  intent, evidence, recommendations, risks, missing information, and
+  uncertainty. No metrics or curves are drawn.
+- **With a brief.** The window from `demo/weather_brief.py` is added as summary
+  tiles and hourly curves — temperature, apparent temperature, rain chance,
+  precipitation, wind, gusts, PM2.5, PM10 — each labelled with its peak figure
+  and the evidence IDs behind it.
+- **What it refuses.** A response missing a required field, an unknown `status`,
+  an unknown `intent`, or a `needs_clarification` without a question is
+  rejected with the reason on stderr, rather than rendered as a plausible card.
+- **What it never does.** The card adds no weather values, thresholds, or
+  recommendations, and never rewrites the response to look better. Every figure
+  comes from the response or the brief.
+- **Self-contained.** No scripts, external stylesheets, or remote images, so it
+  opens offline and can be shared as a single file. It follows the viewer's
+  light or dark preference.
+
+Output goes to a temporary file whose path is printed, or to `--output`.
+`--open` opens it in the browser. `--check` verifies an existing card file is
+well-formed.
+
+Because the card restates the demo's evidence, it keeps the Open-Meteo
+attribution and license, states that air quality is a CAMS modelled forecast
+rather than a measurement, notes that the two AQI scales are not comparable,
+and carries the demo's `demo_gaps` — including that the absence of an alert is
+not evidence that no alert is in effect. Keep those when the card is shared.
+
 ## Install for personal use
 
-Install the skill and its supporting files into
+Install the skills and their supporting files into
 `~/.claude/skills/weather-advisor`:
 
 ```bash
@@ -138,8 +187,15 @@ python3 scripts/install_claude_skill.py
 
 The installer copies the whole repository (excluding `.git`, `.venv`, and
 `.claude`), renames the canonical skill to `CANONICAL-SKILL.md`, and writes the
-Claude Code entry as `SKILL.md`. The installed layout therefore still contains
-`references/`, `schemas/`, `demo/`, and `tests/` next to the entry.
+Claude Code entries as `SKILL.md` and `card/SKILL.md`. The installed layout
+therefore still contains `references/`, `schemas/`, `demo/`, and `tests/` next
+to the entries.
+
+Claude Code derives a skill's name from its frontmatter rather than its
+directory, so `/weather-advisor-card` works from the nested `card/` directory,
+which also keeps it from shadowing the main entry's `SKILL.md`. Each entry's
+relative link to the canonical skill is rewritten for its own depth during
+installation.
 
 Options:
 
@@ -156,6 +212,7 @@ After installing, restart Claude Code or reload skills, then try:
 ```text
 /weather-advisor Tokyo outdoor running tomorrow
 /weather-advisor --live Osaka travel tomorrow
+/weather-advisor-card /tmp/response.json --brief /tmp/brief.json --open
 ```
 
 ## Optional Stop hook
@@ -223,23 +280,31 @@ test cases cover that.
 ## Verify the integration
 
 - `/weather-advisor` is recognized and receives the arguments.
+- `/weather-advisor-card` is recognized and receives the arguments.
 - `claude plugin validate .claude/skills` reports valid frontmatter (Claude
   Code v2.1.233+).
 - Live mode actually calls Open-Meteo; `--offline` does not use the network.
 - With no weather evidence, the skill asks for clarification or returns
   insufficient evidence instead of inventing values.
 - Requested JSON passes `tests/validate_schema.py`.
+- A rendered card opens offline, loads nothing from the network, and every
+  figure on it appears in the response or the brief it was given.
 - If the hook is enabled, `/hooks` lists it and the Stop event fires.
-- After a personal install, `demo/weather_demo.py` runs from the installed
-  directory and `CANONICAL-SKILL.md` is present.
+- After a personal install, `demo/weather_demo.py` and `demo/weather_card.py`
+  run from the installed directory and `CANONICAL-SKILL.md` is present.
 
 ## Limits
 
 - `argument-hint` is a Claude Code frontmatter extension. It appears only on
-  this entry, never on the canonical root `SKILL.md`, so the canonical skill
-  stays portable to claude.ai and Skills API packaging (which accept only
-  `name`, `description`, `license`, `compatibility`, `metadata`, and
-  `allowed-tools`).
+  the Claude Code entries, never on the canonical root `SKILL.md`, so the
+  canonical skill stays portable to claude.ai and Skills API packaging (which
+  accept only `name`, `description`, `license`, `compatibility`, `metadata`,
+  and `allowed-tools`).
+- The card is a view of a response, not a second opinion. It cannot detect
+  advice that the evidence does not support; that is what
+  `tests/check_evidence.py` and the test cases are for.
+- The card renders the response as given. If the response is wrong, the card is
+  wrong in the same way.
 - The demo is a replaceable adapter, not part of the skill core. See
   [`demo/README.md`](../demo/README.md) for provider limits, attribution, and
   licensing.
