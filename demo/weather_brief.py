@@ -24,17 +24,21 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 try:
     from weather_demo import (
+        AIR_QUALITY_ATTRIBUTION,
         INTENTS,
         DemoError,
         build_evidence,
+        fetch_air_quality,
         fetch_forecast,
         geocode,
     )
 except ModuleNotFoundError:  # imported as demo.weather_brief
     from demo.weather_demo import (  # type: ignore[no-redef]
+        AIR_QUALITY_ATTRIBUTION,
         INTENTS,
         DemoError,
         build_evidence,
+        fetch_air_quality,
         fetch_forecast,
         geocode,
     )
@@ -47,10 +51,12 @@ VALUE_TYPES = [
     "precipitation_amount",
     "wind_speed",
     "wind_gust",
+    "particulate_matter_2_5",
+    "particulate_matter_10",
+    "air_quality_index",
 ]
 DEMO_GAPS = [
     "severe_weather_alert",
-    "air_quality",
     "uv_index",
     "humidity",
     "visibility",
@@ -63,6 +69,17 @@ def _zone(name: str) -> ZoneInfo:
         return ZoneInfo(name)
     except (ZoneInfoNotFoundError, ValueError):
         return ZoneInfo("UTC")
+
+
+def _row_label(item: dict[str, Any]) -> str:
+    """Return the key an evidence item occupies in an hourly row.
+
+    Most types map to themselves. The two air-quality indices share a type, so
+    they are keyed by scale to stay distinguishable.
+    """
+    if item["type"] == "air_quality_index":
+        return "us_aqi" if item["id"].endswith("us_aqi") else "european_aqi"
+    return item["type"]
 
 
 def resolve_date(
@@ -133,13 +150,14 @@ def resolve_window(
 
 def stat(
     rows: dict[datetime, dict[str, dict[str, Any]]],
-    evidence_type: str,
+    label: str,
     mode: str,
 ) -> dict[str, Any] | None:
+    """Summarize one row label over the window."""
     pairs = [
-        (row[evidence_type]["value"], row[evidence_type]["id"], row[evidence_type]["unit"])
+        (row[label]["value"], row[label]["id"], row[label]["unit"])
         for row in rows.values()
-        if evidence_type in row
+        if label in row
     ]
     if not pairs:
         return None
@@ -171,20 +189,28 @@ def build_brief(
     query: str,
     intent: str,
     offline: bool,
+    air_quality: bool = True,
     summary_only: bool = False,
     every: int = 1,
 ) -> dict[str, Any]:
     forecast = fetch_forecast(location, days=days, offline=offline)
+    air_payload = (
+        fetch_air_quality(location, days=days, offline=offline)
+        if air_quality
+        else None
+    )
     retrieved_at = datetime.now(timezone).isoformat(timespec="seconds")
-    evidence = build_evidence(location, forecast, retrieved_at)
+    evidence = build_evidence(location, forecast, retrieved_at, air_payload)
 
+    # Keyed by row label rather than evidence type: the US and European indices
+    # share the air_quality_index type and would otherwise overwrite each other.
     rows: dict[datetime, dict[str, dict[str, Any]]] = {}
     available_types: set[str] = set()
     for item in evidence:
         available_types.add(item["type"])
         hour = datetime.fromisoformat(item["valid_from"])
         if start <= hour < end:
-            rows.setdefault(hour, {})[item["type"]] = item
+            rows.setdefault(hour, {})[_row_label(item)] = item
 
     if not rows:
         raise DemoError("No evidence covers the requested date and window")
@@ -193,16 +219,14 @@ def build_brief(
     for hour in sorted(rows):
         values: dict[str, Any] = {}
         ids: dict[str, str] = {}
-        ordered_types = [
-            evidence_type
-            for evidence_type in VALUE_TYPES
-            if evidence_type in rows[hour]
+        ordered_labels = [
+            label for label in VALUE_TYPES if label in rows[hour]
         ]
-        ordered_types += sorted(set(rows[hour]) - set(VALUE_TYPES))
-        for evidence_type in ordered_types:
-            item = rows[hour][evidence_type]
-            values[evidence_type] = item["value"]
-            ids[evidence_type] = item["id"]
+        ordered_labels += sorted(set(rows[hour]) - set(VALUE_TYPES))
+        for label in ordered_labels:
+            item = rows[hour][label]
+            values[label] = item["value"]
+            ids[label] = item["id"]
         hour_rows.append(
             {
                 "time": hour.strftime("%H:%M"),
@@ -267,9 +291,44 @@ def build_brief(
         "note": (
             "Compact brief derived from demo evidence; only the requested window "
             "is included. It is not a recommendation and not a substitute for "
-            "official warnings or air-quality data."
+            "official warnings or air-quality bulletins."
         ),
     }
+
+    if air_payload is not None:
+        # Air quality is a second upstream source, so its statistics, its
+        # attribution, and its index scales are stated separately rather than
+        # being folded into the weather summary.
+        brief["summary"]["particulate_matter_2_5"] = {
+            "min": stat(rows, "particulate_matter_2_5", "min"),
+            "max": stat(rows, "particulate_matter_2_5", "max"),
+        }
+        brief["summary"]["particulate_matter_10"] = {
+            "min": stat(rows, "particulate_matter_10", "min"),
+            "max": stat(rows, "particulate_matter_10", "max"),
+        }
+        brief["source"]["air_quality_attribution"] = AIR_QUALITY_ATTRIBUTION
+        brief["air_quality"] = {
+            "kind": "modelled forecast, not a ground-station measurement",
+            "index_scales": {
+                "us_aqi": "US AQI scale",
+                "european_aqi": "European AQI scale",
+            },
+            "note": (
+                "US AQI and European AQI are not on a linear scale and are not "
+                "directly comparable to each other. Prefer particulate "
+                "concentration when judging a trend."
+            ),
+            "us_aqi": {
+                "min": stat(rows, "us_aqi", "min"),
+                "max": stat(rows, "us_aqi", "max"),
+            },
+            "european_aqi": {
+                "min": stat(rows, "european_aqi", "min"),
+                "max": stat(rows, "european_aqi", "max"),
+            },
+        }
+
     if not summary_only:
         brief["hours"] = hours
     return brief
@@ -307,6 +366,12 @@ def main(argv: list[str] | None = None) -> int:
         "--offline",
         action="store_true",
         help="use the bundled Tokyo fixture and make no network call",
+    )
+    parser.add_argument(
+        "--no-air-quality",
+        dest="air_quality",
+        action="store_false",
+        help="skip the Open-Meteo air-quality endpoint (weather evidence only)",
     )
     parser.add_argument(
         "--summary-only",
@@ -352,6 +417,7 @@ def main(argv: list[str] | None = None) -> int:
             query=args.query,
             intent=args.intent,
             offline=args.offline,
+            air_quality=args.air_quality,
             summary_only=args.summary_only,
             every=args.every,
         )

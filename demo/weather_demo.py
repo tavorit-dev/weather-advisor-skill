@@ -5,10 +5,16 @@ The demo uses only the Python standard library and requires no API key. It
 converts a city name into a skill-ready input envelope: location context plus
 normalized hourly evidence that matches references/evidence-contract.md.
 
+Air quality is optional and comes from a second Open-Meteo endpoint. It is
+included by default because particulate levels often decide whether strenuous
+outdoor activity is advisable; pass --no-air-quality to skip it. Air-quality
+values are modelled forecasts, not ground-station measurements.
+
 Usage:
     python demo/weather_demo.py Tokyo
     python demo/weather_demo.py "New York" --days 2
     python demo/weather_demo.py Tokyo --offline
+    python demo/weather_demo.py Tokyo --no-air-quality
 """
 
 from __future__ import annotations
@@ -26,7 +32,9 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
+AIR_QUALITY_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
 ATTRIBUTION = "Weather data by Open-Meteo.com"
+AIR_QUALITY_ATTRIBUTION = "Air quality data by Open-Meteo.com (CAMS)"
 DATA_LICENSE = "CC BY 4.0"
 USER_AGENT = (
     "weather-advisor-skill-demo/0.1 "
@@ -52,6 +60,25 @@ HOURLY_FIELDS = [
     ("wind_speed_10m", "wind_speed", "km/h"),
     ("wind_gusts_10m", "wind_gust", "km/h"),
 ]
+
+# Open-Meteo air-quality field -> (evidence type, unit).
+# The contract requires an air-quality index to state its scale, so both the
+# US and European scales are carried and named in the evidence description.
+AIR_QUALITY_FIELDS = [
+    ("pm2_5", "particulate_matter_2_5", "μg/m³"),
+    ("pm10", "particulate_matter_10", "μg/m³"),
+    ("us_aqi", "air_quality_index", "USAQI"),
+    ("european_aqi", "air_quality_index", "EAQI"),
+]
+AIR_QUALITY_SCALES = {
+    "us_aqi": "US AQI scale",
+    "european_aqi": "European AQI scale",
+}
+PARTICULATE_DESCRIPTIONS = {
+    "pm2_5": "Fine particulate matter (PM2.5), modelled hourly forecast.",
+    "pm10": "Coarse particulate matter (PM10), modelled hourly forecast.",
+}
+AIR_QUALITY_SOURCE = "Open-Meteo Air Quality (CAMS)"
 
 
 class DemoError(Exception):
@@ -188,12 +215,46 @@ def fetch_forecast(
     return payload
 
 
+def fetch_air_quality(
+    location: dict[str, Any], days: int = 3, *, offline: bool = False
+) -> dict[str, Any]:
+    """Fetch the raw hourly air-quality payload."""
+    if offline:
+        payload = _load_fixture("air-quality-tokyo.json")
+    else:
+        if not 1 <= days <= 7:
+            raise DemoError("days must be between 1 and 7")
+        payload = _request_json(
+            AIR_QUALITY_URL,
+            {
+                "latitude": location["latitude"],
+                "longitude": location["longitude"],
+                "hourly": ",".join(field for field, _, _ in AIR_QUALITY_FIELDS),
+                "forecast_days": days,
+                "timezone": location["timezone"],
+            },
+        )
+
+    hourly = payload.get("hourly")
+    if not isinstance(hourly, dict):
+        raise DemoError("Air-quality response is missing hourly data")
+    times = hourly.get("time")
+    if not isinstance(times, list) or not times:
+        raise DemoError("Air-quality response contains no hourly timestamps")
+    return payload
+
+
 def build_evidence(
     location: dict[str, Any],
     forecast: dict[str, Any],
     retrieved_at: str,
+    air_quality: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
-    """Convert Open-Meteo hourly arrays into evidence items."""
+    """Convert Open-Meteo hourly arrays into evidence items.
+
+    Weather and air quality are separate upstream payloads, so they are merged
+    onto the same hourly timeline here.
+    """
     timezone = _zone(location["timezone"])
     hourly = forecast["hourly"]
     times = hourly.get("time", [])
@@ -228,6 +289,42 @@ def build_evidence(
                 }
             )
 
+        if air_quality is None:
+            continue
+        air_hourly = air_quality["hourly"]
+        air_index = air_hourly.get("time", []).index(timestamp) if timestamp in (
+            air_hourly.get("time") or []
+        ) else None
+        if air_index is None:
+            continue
+
+        for api_field, evidence_type, unit in AIR_QUALITY_FIELDS:
+            values = air_hourly.get(api_field)
+            if not isinstance(values, list) or air_index >= len(values):
+                continue
+            value = values[air_index]
+            if value is None:
+                continue
+            item: dict[str, Any] = {
+                "id": f"ev-aq-{index:03d}-{api_field}",
+                "type": evidence_type,
+                "value": value,
+                "unit": unit,
+                "valid_from": start.isoformat(),
+                "valid_to": end.isoformat(),
+                "source": AIR_QUALITY_SOURCE,
+                "observed_at": retrieved_at,
+            }
+            if api_field in AIR_QUALITY_SCALES:
+                item["description"] = (
+                    "Air quality index on the "
+                    f"{AIR_QUALITY_SCALES[api_field]}; modelled hourly forecast. "
+                    "Scales are not directly comparable to each other."
+                )
+            else:
+                item["description"] = PARTICULATE_DESCRIPTIONS[api_field]
+            evidence.append(item)
+
     return evidence
 
 
@@ -238,6 +335,7 @@ def build_document(
     query: str = "",
     intent: str = "weather_lookup",
     offline: bool = False,
+    air_quality: bool = True,
 ) -> dict[str, Any]:
     """Build a skill-ready input envelope from live or offline weather data."""
     if intent not in INTENTS:
@@ -246,11 +344,35 @@ def build_document(
     location = geocode(city, offline=offline)
     forecast = fetch_forecast(location, days=days, offline=offline)
 
+    air_payload = None
+    if air_quality:
+        air_payload = fetch_air_quality(location, days=days, offline=offline)
+
     timezone = _zone(location["timezone"])
     retrieved_at = datetime.now(timezone).isoformat(timespec="seconds")
-    evidence = build_evidence(location, forecast, retrieved_at)
+    evidence = build_evidence(location, forecast, retrieved_at, air_payload)
     if not evidence:
         raise DemoError("No usable weather values were returned")
+
+    source_urls = [GEOCODING_URL, FORECAST_URL]
+    attributions = [ATTRIBUTION]
+    if air_payload is not None:
+        source_urls.append(AIR_QUALITY_URL)
+        attributions.append(AIR_QUALITY_ATTRIBUTION)
+
+    data_note = (
+        "Bundled fixtures with synthetic values for offline testing. "
+        "Not a real forecast and not real air quality."
+        if offline
+        else "Live forecast data; values change over time and are not "
+        "guaranteed."
+    )
+    if air_payload is not None:
+        data_note += (
+            " Air-quality values are modelled forecasts (CAMS), not "
+            "ground-station measurements, and do not replace official "
+            "air-quality bulletins."
+        )
 
     return {
         "user_query": query or f"What will the weather be like in {location['name']}?",
@@ -261,20 +383,14 @@ def build_document(
             "end": max(item["valid_to"] for item in evidence),
         },
         "weather_evidence": evidence,
-        "attribution": ATTRIBUTION,
+        "attribution": " | ".join(attributions),
         "metadata": {
             "provider": "Open-Meteo",
             "mode": "offline" if offline else "live",
             "retrieved_at": retrieved_at,
             "data_license": DATA_LICENSE,
-            "source_urls": [GEOCODING_URL, FORECAST_URL],
-            "data_note": (
-                "Bundled fixture with synthetic values for offline testing. "
-                "Not a real forecast."
-                if offline
-                else "Live forecast data; values change over time and are "
-                "not guaranteed."
-            ),
+            "source_urls": source_urls,
+            "data_note": data_note,
         },
     }
 
@@ -300,6 +416,12 @@ def main(argv: list[str] | None = None) -> int:
         "--offline",
         action="store_true",
         help="Use the bundled Tokyo fixture; no network access",
+    )
+    parser.add_argument(
+        "--no-air-quality",
+        dest="air_quality",
+        action="store_false",
+        help="Skip the Open-Meteo air-quality endpoint (weather evidence only)",
     )
     parser.add_argument(
         "--query",
@@ -328,6 +450,7 @@ def main(argv: list[str] | None = None) -> int:
             query=args.query,
             intent=args.intent,
             offline=args.offline,
+            air_quality=args.air_quality,
         )
     except DemoError as exc:
         print(f"Weather demo failed: {exc}", file=sys.stderr)

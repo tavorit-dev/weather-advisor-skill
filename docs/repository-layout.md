@@ -44,11 +44,12 @@ weather-advisor-skill/
 │   ├── no-weather-evidence.json
 │   └── no-weather-evidence-output.json
 ├── demo/                          # Key-free demo: Open-Meteo -> evidence
-│   ├── weather_demo.py
+│   ├── weather_demo.py            # Weather + air quality -> evidence envelope
 │   ├── weather_brief.py           # Compact windowed evidence view for agents
-│   ├── fixtures/
+│   ├── fixtures/                  # Synthetic Tokyo data for offline mode
 │   │   ├── geocoding-tokyo.json
-│   │   └── forecast-tokyo.json
+│   │   ├── forecast-tokyo.json
+│   │   └── air-quality-tokyo.json
 │   └── README.md
 └── tests/
     ├── cases.jsonl                # 32 acceptance cases

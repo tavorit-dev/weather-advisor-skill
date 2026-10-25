@@ -186,7 +186,9 @@ The Chinese version is [`README.md`](README.md).
 
 `demo/weather_demo.py` turns a city name into a skill-ready input envelope using
 Open-Meteo's free public API. It uses only the Python standard library and
-needs no API key.
+needs no API key. Alongside the hourly weather it merges PM2.5, PM10, and both
+the US and European AQI by default, because air quality often decides whether
+strenuous outdoor activity is advisable; pass `--no-air-quality` to skip it.
 
 ```bash
 python demo/weather_demo.py Tokyo
@@ -198,14 +200,16 @@ python demo/weather_brief.py Tokyo --date today --window 10:00-16:00 --compact
 ```
 
 `weather_brief.py` returns only the requested hours, summary statistics, and
-evidence IDs. The compact mode is typically 1.7–13 KB, against roughly
-50–100 KB for a live full-day envelope. See
+evidence IDs. The compact mode is typically 3–20 KB, against roughly
+44–86 KB for a live full-day envelope. See
 [`docs/claude-code.md`](docs/claude-code.md#token-efficient-consultation-pattern)
 for the consultation pattern.
 
-Weather data by [Open-Meteo.com](https://open-meteo.com/), licensed under
-CC BY 4.0. The free endpoint is intended for non-commercial use and offers no
-production SLA; keep the attribution when displaying the data. See
+Weather and air-quality data by [Open-Meteo.com](https://open-meteo.com/),
+licensed under CC BY 4.0. The free endpoint is intended for non-commercial use
+and offers no production SLA; keep the attribution when displaying the data.
+Air quality is CAMS modelled forecast output, not a ground-station measurement,
+and does not replace official AQI bulletins. See
 [`demo/README.md`](demo/README.md) for limits and provider replacement.
 
 ## Local validation

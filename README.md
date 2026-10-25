@@ -173,7 +173,9 @@ Web 服务或数据库、针对特定模型的 Prompt 调优。完整范围与�
 ## 演示
 
 `demo/weather_demo.py` 用 Open-Meteo 的免费公共 API，把城市名转换为可直接
-交给 Agent 的输入信封。它只依赖 Python 标准库，不需要 API Key。
+交给 Agent 的输入信封。它只依赖 Python 标准库，不需要 API Key。除逐小时天气
+外，它还默认合并 PM2.5、PM10 和 US / European AQI —— 剧烈户外活动是否适宜，
+往往由空气质量决定；不需要时加 `--no-air-quality`。
 
 ```bash
 python demo/weather_demo.py Tokyo
@@ -185,12 +187,13 @@ python demo/weather_brief.py Tokyo --date today --window 10:00-16:00 --compact
 ```
 
 `weather_brief.py` 只返回指定时段的小时数据、统计值和证据 ID。紧凑模式通常
-在 1.7–13 KB，而实时全天信封约 50–100 KB。咨询流程见
+在 3–20 KB，而实时全天信封约 44–86 KB。咨询流程见
 [`docs/claude-code.md`](docs/claude-code.md#token-efficient-consultation-pattern)。
 
-天气数据由 [Open-Meteo.com](https://open-meteo.com/) 提供，许可为 CC BY 4.0。
-免费端点面向非商业使用，不提供生产级 SLA；展示数据时请保留署名。限制说明与
-数据源替换见 [`demo/README.md`](demo/README.md)。
+天气与空气质量数据由 [Open-Meteo.com](https://open-meteo.com/) 提供，许可为
+CC BY 4.0。免费端点面向非商业使用，不提供生产级 SLA；展示数据时请保留署名。
+空气质量是 CAMS 预报模型输出，不是地面监测站实测值，也不能替代官方 AQI
+公报。限制说明与数据源替换见 [`demo/README.md`](demo/README.md)。
 
 ## 本地校验
 

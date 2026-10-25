@@ -54,27 +54,46 @@ python3 demo/weather_brief.py <city> --date tomorrow --every 3 --compact
 # Only extremes are needed: summary only
 python3 demo/weather_brief.py <city> --date tomorrow --summary-only --compact
 
+# Weather only, when context is tight and air quality is not decisive
+python3 demo/weather_brief.py <city> --date tomorrow --every 3 --compact --no-air-quality
+
 # Offline fixture
 python3 demo/weather_brief.py Tokyo --offline --date 2026-10-22 --window 08:00-12:00 --compact
 ```
 
+Air quality is on by default: the brief carries PM2.5, PM10, and both the US and
+European AQI alongside the weather, plus a separate `air_quality_attribution`.
+It costs roughly a third of the payload, which is usually worth paying because
+particulate levels often decide whether strenuous outdoor activity is advisable.
+
 | Mode | What it returns | Offline 12-hour size |
 | --- | --- | ---: |
-| default | hourly rows + summary | 9.9 KB |
-| `--compact` | hourly rows + summary, no indentation | 7.2 KB |
-| `--every 3 --compact` | 3-hour curve + summary | 3.6 KB |
-| `--summary-only` | summary statistics and IDs only | 2.4 KB |
-| `--summary-only --compact` | summary statistics and IDs, no indentation | **1.7 KB** |
+| default | hourly rows + summary | 15.3 KB |
+| `--compact` | hourly rows + summary, no indentation | 11.2 KB |
+| `--every 3 --compact` | 3-hour curve + summary | 5.6 KB |
+| `--summary-only` | summary statistics and IDs only | 4.0 KB |
+| `--summary-only --compact` | summary statistics and IDs, no indentation | **2.8 KB** |
+| `--no-air-quality --compact` | hourly rows + weather summary | 7.2 KB |
+| `--no-air-quality --summary-only --compact` | weather statistics and IDs | 1.7 KB |
 
-For a live 24-hour Haikou check, the hourly compact brief was 12.7 KB, the
-`--every 3` compact brief was 5.4 KB, and the summary-only compact brief was
-1.7 KB.
+For a live 24-hour Tianjin check the hourly compact brief was 19.6 KB, the
+`--every 3` compact brief was 8.4 KB, and the summary-only compact brief was
+2.8 KB; with `--no-air-quality` these fell to 12.7 KB, 5.4 KB, and 1.7 KB.
 
-The brief is typically 2–13 KB, compared with roughly 50–100 KB for a live
-full-day envelope. In a Tianjin 6-hour-window check the indented brief was
-6.1 KB versus 87.9 KB for the full live envelope (about 7%). Use
-`demo/weather_demo.py` only when the complete evidence set or a schema-ready
-input envelope is required.
+The brief is typically 3–20 KB, compared with roughly 44–86 KB for a live
+full-day envelope. Use `demo/weather_demo.py` only when the complete evidence
+set or a schema-ready input envelope is required.
+
+Two things to keep straight when air quality is present:
+
+- The US and European indices share the `air_quality_index` evidence type, so
+  hourly rows key them separately as `us_aqi` and `european_aqi`. Quote the scale
+  by name; the numbers are not comparable, and they can move in opposite
+  directions over the same day. Prefer PM2.5 concentration for a trend.
+- These are modelled forecasts (CAMS), not ground-station measurements. When air
+  quality drives the answer, say so and point to the local environmental
+  authority for the official AQI rather than presenting the demo's numbers as a
+  bulletin.
 
 `--offline` uses the synthetic Tokyo fixture and requires an explicit date
 because the fixture is fixed. If the command fails, the skill must explain the
