@@ -14,6 +14,16 @@
 
 ## 语言约定
 
+### 与用户交流
+
+- **默认使用简体中文**回复：说明、总结、计划、提问、提交信息正文、代码评审
+  意见，一律用中文。
+- 不要因为仓库里英文文件多、或上一轮回答是英文，就切回英文。除非用户明确要求
+  换语言，或用户自己改用其他语言提问。
+- 面向用户的新文档默认写中文；确需英文版本时按下面的「文件语言」成对维护。
+
+### 文件语言
+
 - `SKILL.md`、`references/*.md`、`docs/*.md`、
   `.claude/skills/weather-advisor/SKILL.md`、
   `.claude/skills/weather-advisor-card/SKILL.md`：英文。`SKILL.md` 与
