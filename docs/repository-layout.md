@@ -49,7 +49,7 @@ weather-advisor-skill/
 │   ├── weather_demo.py            # Weather + air quality -> evidence envelope
 │   ├── weather_brief.py           # Compact windowed evidence view for agents
 │   ├── weather_card.py            # Response (+ brief) -> self-contained HTML card
-│   ├── card.css                   # Card styles, inlined into the rendered card
+│   ├── card.css                   # Card styles incl. print rules, inlined
 │   ├── fixtures/                  # Synthetic Tokyo data for offline mode
 │   │   ├── geocoding-tokyo.json
 │   │   ├── forecast-tokyo.json

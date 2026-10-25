@@ -187,6 +187,12 @@ python demo/weather_demo.py Tokyo --days 2
 - `--summary-only` 只能省略 `hours`，不得省略 `summary`、`source`、`demo_gaps`
   或证据 ID；`--compact` 只改变 JSON 序列化，不改变字段；`--every N` 只能
   稀疏化 `hours`，`summary` 必须继续覆盖整个窗口。
+- 卡片的界面语言由**提问**决定（`--query` 含汉字则中文，否则英文；
+  `--lang zh|en` 可覆盖），不得由响应正文决定——响应按原样输出，可能本来就是
+  另一种语言。只翻译卡片自身的界面标签，不得翻译响应正文。新增语言时同步补齐
+  `STRINGS` 的所有键，并保证界面文案与 `card.css` 的打印规则一致。
+- 卡片的图片导出只走浏览器打印（`--print` → 另存为 PDF），以维持无脚本、单文件、
+  可离线打开；不要引入截图库、无头浏览器或内联脚本去生成 PNG。
 - 保持“demo 不属于 Skill 核心”的边界，不要把数据获取写进 `SKILL.md`。
 
 ### 文档改动
@@ -208,6 +214,7 @@ python demo/weather_demo.py Tokyo --days 2
 ```bash
 python tests/test_demo.py
 python tests/test_weather_brief.py
+python tests/test_weather_card.py
 python tests/test_claude_integration.py
 python tests/run_examples.py
 python tests/validate_cases.py

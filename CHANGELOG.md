@@ -25,10 +25,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   single file with no scripts, external stylesheets, or remote images, so it
   opens offline and follows the viewer's light or dark preference.
   `--check` verifies an existing card file; `--open` opens the result.
+- A Chinese interface for the card, selected by the language of the question:
+  `--query` with Han characters renders the labels in Chinese, anything else
+  stays English, and `--lang zh|en` overrides it (regional tags such as `zh-CN`
+  are accepted). Only the card's own labels are translated — the response's
+  prose is printed verbatim in whatever language it was written, so a Chinese
+  question against an English response yields Chinese chrome and an English
+  body. The response's text is deliberately not inspected, so the interface
+  follows the user rather than the response.
+- Image export by printing to PDF: `--print` opens the card and points at the
+  browser's print dialog, and `demo/card.css` gains print rules that force light
+  ink on white regardless of the viewer's theme, keep a card from splitting
+  across pages, and drop the on-screen print hint. Export goes through the
+  browser precisely so the card stays script-free; a PNG would need an inline
+  canvas script or a headless browser and would break the single-file,
+  offline-openable property.
 - `tests/test_weather_card.py`, an offline L1 suite covering self-containment,
   verbatim rendering of the response, curves and their evidence IDs,
   attribution and gap disclosure, the no-brief and summary-only paths, HTML
-  escaping, and rejection of invalid input.
+  escaping, rejection of invalid input, language selection in both directions,
+  that every key exists in every language, and the print-export rules.
 - English README as the default (`README.md`), with the Chinese version in
   `README.zh.md`; both are maintained as a synchronized pair.
 - Detailed guides under `docs/`: getting started and host integration,
@@ -119,6 +135,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `tests/test_weather_card.py` joins the five required checks, in `CLAUDE.md`,
   `README.md`, `README.en.md`, `tests/README.md`, and
   `docs/getting-started.md`.
+
+### Fixed
+
+- `tests/test_weather_brief.py` compared the full JSON of two separate
+  `weather_brief.py` runs, including the wall-clock `retrieved_at` each run
+  stamps. When the two processes straddled a second boundary the test failed
+  with no real defect behind it. The comparison now excludes that one field,
+  which is what "`--compact` changes serialization only" was meant to assert.
 
 ## [0.1.0] - 2026-10-21
 

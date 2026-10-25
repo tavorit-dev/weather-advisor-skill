@@ -20,7 +20,7 @@
 | `grade_case.py` | 用指定用例评分一份模型响应 |
 | `test_demo.py` | L1 数据层测试：离线验证 demo 的地理编码与字段转换 |
 | `test_weather_brief.py` | 紧凑摘要测试：离线验证窗口过滤、统计值、证据 ID、`--compact`、`--summary-only` 与 `--every` |
-| `test_weather_card.py` | 卡片渲染测试：离线验证自包含 HTML、响应内容原样呈现、曲线与证据 ID、转义与非法输入拒绝 |
+| `test_weather_card.py` | 卡片渲染测试：离线验证自包含 HTML、响应内容原样呈现、曲线与证据 ID、转义与非法输入拒绝、中英文界面切换与打印导出样式 |
 | `test_claude_integration.py` | Claude Code 入口、安装脚本与可选 Hook 的集成测试 |
 | `requirements.txt` | Python 依赖（`test_demo.py` 只用标准库） |
 
