@@ -41,6 +41,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   1.7 KB with summary-only compact.
 
 - Project banner and logo under `images/`, shown at the top of the READMEs.
+- Air-quality support in the demo, on by default. `demo/weather_demo.py` now
+  fetches Open-Meteo's air-quality endpoint and merges PM2.5, PM10, and the US
+  and European AQI onto the same hourly timeline as the weather evidence, so a
+  consultation about running, cycling, or other strenuous activity can weigh
+  particulate levels against the forecast. `--no-air-quality` restores the
+  weather-only envelope. Adds `demo/fixtures/air-quality-tokyo.json` (synthetic)
+  and `AIR_QUALITY_FIELDS` / `fetch_air_quality` in `demo/weather_demo.py`.
+- `air_quality`, `summary.particulate_matter_2_5`, and
+  `summary.particulate_matter_10` sections in `demo/weather_brief.py`, with
+  `source.air_quality_attribution`. The two indices share one evidence type, so
+  hourly rows key them separately as `us_aqi` and `european_aqi`; `--no-air-quality`
+  omits all of it. `air_quality` is no longer listed in `demo_gaps`.
+- Coverage in `tests/test_demo.py` and `tests/test_weather_brief.py` for the
+  merged timeline, the index-scale descriptions, the two-index keying, and the
+  `--no-air-quality` path.
 
 ### Removed
 
@@ -58,6 +73,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed the English README from `README.en.md` to `README.md`; the Chinese
   README moved to `README.zh.md`.
 - Corrected the license reference from MIT to Apache-2.0, matching `LICENSE`.
+- `demo/weather_demo.py` offline output grew from 72 to 120 evidence items and
+  from 22.6 KB to 43.7 KB, and the offline compact brief from 7.2 KB to 11.2 KB,
+  because air quality is now included by default. Use `--no-air-quality` for the
+  previous sizes. `metadata.data_note` now states that air quality is modelled
+  forecast data, and `attribution` carries both sources.
 - Aligned both READMEs with the current test layout: the local-validation block
   now lists `test_weather_brief.py` and `test_claude_integration.py` alongside
   `test_demo.py`, matching the five commands required before a commit.

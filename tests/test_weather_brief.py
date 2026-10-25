@@ -156,6 +156,108 @@ class WeatherBriefTests(unittest.TestCase):
             "ev-006-wind_gusts_10m",
         )
 
+    def test_air_quality_is_summarized_and_citable(self) -> None:
+        result = run(
+            BRIEF,
+            "Tokyo",
+            "--offline",
+            "--date",
+            FIXTURE_DATE,
+            "--window",
+            "08:00-12:00",
+            "--compact",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        brief = json.loads(result.stdout)
+
+        self.assertIn("particulate_matter_2_5", brief["summary"])
+        self.assertIn("particulate_matter_10", brief["summary"])
+        for group in ("particulate_matter_2_5", "particulate_matter_10"):
+            for bound in ("min", "max"):
+                self.assertTrue(brief["summary"][group][bound]["evidence_id"])
+
+        # Both index scales must survive; they share one evidence type.
+        self.assertTrue(brief["air_quality"]["us_aqi"]["max"]["evidence_id"])
+        self.assertTrue(brief["air_quality"]["european_aqi"]["max"]["evidence_id"])
+        self.assertIn("US AQI scale", brief["air_quality"]["index_scales"]["us_aqi"])
+        self.assertIn(
+            "European AQI scale",
+            brief["air_quality"]["index_scales"]["european_aqi"],
+        )
+        self.assertIn("modelled forecast", brief["air_quality"]["kind"])
+        self.assertIn(
+            "air_quality_attribution", brief["source"]
+        )
+
+        # Air quality is no longer an unstated gap.
+        self.assertNotIn("air_quality", brief["demo_gaps"])
+
+        cited = set()
+        for hour in brief["hours"]:
+            cited.update(hour["evidence_ids"].values())
+        self.assertTrue(cited <= self.demo_ids)
+
+    def test_air_quality_hours_carry_both_index_scales(self) -> None:
+        result = run(
+            BRIEF,
+            "Tokyo",
+            "--offline",
+            "--date",
+            FIXTURE_DATE,
+            "--window",
+            "08:00-12:00",
+            "--compact",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        brief = json.loads(result.stdout)
+        for hour in brief["hours"]:
+            self.assertIn("us_aqi", hour["values"])
+            self.assertIn("european_aqi", hour["values"])
+            self.assertIn("us_aqi", hour["evidence_ids"])
+            self.assertIn("european_aqi", hour["evidence_ids"])
+            self.assertNotEqual(
+                hour["evidence_ids"]["us_aqi"],
+                hour["evidence_ids"]["european_aqi"],
+            )
+
+    def test_no_air_quality_omits_the_section(self) -> None:
+        result = run(
+            BRIEF,
+            "Tokyo",
+            "--offline",
+            "--date",
+            FIXTURE_DATE,
+            "--window",
+            "08:00-12:00",
+            "--no-air-quality",
+            "--compact",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        brief = json.loads(result.stdout)
+        self.assertNotIn("air_quality", brief)
+        self.assertNotIn("particulate_matter_2_5", brief["summary"])
+        self.assertNotIn("air_quality_attribution", brief["source"])
+        for hour in brief["hours"]:
+            self.assertNotIn("us_aqi", hour["values"])
+
+    def test_summary_only_keeps_air_quality_ids(self) -> None:
+        result = run(
+            BRIEF,
+            "Tokyo",
+            "--offline",
+            "--date",
+            FIXTURE_DATE,
+            "--window",
+            "08:00-12:00",
+            "--summary-only",
+            "--compact",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        brief = json.loads(result.stdout)
+        self.assertNotIn("hours", brief)
+        self.assertTrue(brief["summary"]["particulate_matter_2_5"]["min"]["evidence_id"])
+        self.assertTrue(brief["air_quality"]["us_aqi"]["max"]["evidence_id"])
+
     def test_invalid_every_fails(self) -> None:
         result = run(
             BRIEF,

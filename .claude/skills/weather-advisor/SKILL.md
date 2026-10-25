@@ -42,6 +42,9 @@ python3 demo/weather_brief.py <city> --date tomorrow --every 3 --compact
 
 # Only extremes are needed: summary only
 python3 demo/weather_brief.py <city> --date tomorrow --summary-only --compact
+
+# Weather only, when context is tight and air quality is not decisive
+python3 demo/weather_brief.py <city> --date tomorrow --every 3 --compact --no-air-quality
 ```
 
 - Always add `--compact` to keep the JSON small.
@@ -51,6 +54,16 @@ python3 demo/weather_brief.py <city> --date tomorrow --summary-only --compact
   the day curve remains visible without 24 rows.
 - Use `--summary-only` only when the question needs extremes or a yes/no, not a
   time-of-day recommendation.
+- Air quality is included by default and is usually decisive for running,
+  cycling, or other strenuous outdoor activity. Drop it with `--no-air-quality`
+  only when the question is purely about weather and context is tight.
+- When air quality is present, read `air_quality` and the PM2.5 statistics
+  alongside the weather. Report the PM2.5 concentration and name the AQI scale
+  you are quoting; the US and European scales are not comparable, so prefer
+  concentration when describing a trend.
+- Air-quality values are modelled forecasts (CAMS), not ground-station
+  measurements. Say so when air quality drives the answer, and do not present
+  them as an official AQI bulletin.
 - If the user gives no date, use `--date today`; for "明天" use
   `--date tomorrow`.
 - `--offline` uses the bundled synthetic Tokyo fixture and requires an explicit

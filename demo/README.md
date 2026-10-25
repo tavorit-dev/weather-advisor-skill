@@ -5,6 +5,10 @@ Open-Meteo 的免费公共 API，输出符合
 [`references/evidence-contract.md`](../references/evidence-contract.md) 的天气
 Evidence，并包装成 Skill 可直接消费的输入信封。
 
+除天气外，它默认还会调用 Open-Meteo 的空气质量端点，把 PM2.5、PM10 和
+US / European AQI 合并到同一条逐小时时间线上。空气质量往往是判断剧烈户外
+活动是否适宜的决定因素，因此默认开启；用 `--no-air-quality` 可以关掉。
+
 它只演示**数据获取与标准化**，不是 Skill 的一部分，也不是生产级天气适配器。
 Skill 核心仍然不抓取天气数据。
 
@@ -26,6 +30,9 @@ python demo/weather_demo.py "New York" --days 2
 # 不联网，使用仓库内的东京 fixture
 python demo/weather_demo.py Tokyo --offline
 
+# 只要天气证据，不查空气质量
+python demo/weather_demo.py Tokyo --no-air-quality
+
 # 指定 user_query / intent，并写入文件
 python demo/weather_demo.py Tokyo \
   --query "明天东京适合户外跑步吗？" \
@@ -34,7 +41,8 @@ python demo/weather_demo.py Tokyo \
 ```
 
 `--days` 取值 1–7，默认 3，只在 `live` 模式下生效。`--intent` 必须是
-`SKILL.md` 定义的六种意图之一。
+`SKILL.md` 定义的六种意图之一。`--no-air-quality` 跳过空气质量端点，只输出
+六类天气证据。
 
 ## 输出结构
 
@@ -63,9 +71,31 @@ python demo/weather_demo.py Tokyo \
       "valid_to": "2026-10-22T09:00:00+09:00",
       "source": "Open-Meteo",
       "observed_at": "2026-10-21T21:00:00+09:00"
+    },
+    {
+      "id": "ev-aq-000-pm2_5",
+      "type": "particulate_matter_2_5",
+      "value": 12.0,
+      "unit": "μg/m³",
+      "valid_from": "2026-10-22T08:00:00+09:00",
+      "valid_to": "2026-10-22T09:00:00+09:00",
+      "source": "Open-Meteo Air Quality (CAMS)",
+      "observed_at": "2026-10-21T21:00:00+09:00",
+      "description": "Fine particulate matter (PM2.5), modelled hourly forecast."
+    },
+    {
+      "id": "ev-aq-000-us_aqi",
+      "type": "air_quality_index",
+      "value": 69,
+      "unit": "USAQI",
+      "valid_from": "2026-10-22T08:00:00+09:00",
+      "valid_to": "2026-10-22T09:00:00+09:00",
+      "source": "Open-Meteo Air Quality (CAMS)",
+      "observed_at": "2026-10-21T21:00:00+09:00",
+      "description": "Air quality index on the US AQI scale; modelled hourly forecast. Scales are not directly comparable to each other."
     }
   ],
-  "attribution": "Weather data by Open-Meteo.com",
+  "attribution": "Weather data by Open-Meteo.com | Air quality data by Open-Meteo.com (CAMS)",
   "metadata": {
     "provider": "Open-Meteo",
     "mode": "live",
@@ -73,9 +103,10 @@ python demo/weather_demo.py Tokyo \
     "data_license": "CC BY 4.0",
     "source_urls": [
       "https://geocoding-api.open-meteo.com/v1/search",
-      "https://api.open-meteo.com/v1/forecast"
+      "https://api.open-meteo.com/v1/forecast",
+      "https://air-quality-api.open-meteo.com/v1/air-quality"
     ],
-    "data_note": "Live forecast data; values change over time and are not guaranteed."
+    "data_note": "Live forecast data; values change over time and are not guaranteed. Air-quality values are modelled forecasts (CAMS), not ground-station measurements, and do not replace official air-quality bulletins."
   }
 }
 ```
@@ -87,7 +118,7 @@ python demo/weather_demo.py Tokyo \
 | `context.location` | 地理编码结果，包含名称、国家、经纬度和时区 |
 | `context.start` / `end` | 输出证据覆盖的整体时间窗 |
 | `weather_evidence` | 逐小时标准化证据，字段符合证据契约 |
-| `attribution` | Open-Meteo 署名，展示时应保留 |
+| `attribution` | Open-Meteo 署名（含空气质量），展示时应保留 |
 | `metadata` | 数据提供方、模式、获取时间、许可和说明 |
 
 `live` 模式返回的是 Open-Meteo 给出的完整逐小时窗口，通常从当地 00:00 开始，
@@ -112,6 +143,9 @@ python demo/weather_brief.py Tianjin --date tomorrow --every 3 --compact
 # 只需要极值：只看统计值
 python demo/weather_brief.py Tianjin --date tomorrow --summary-only --compact
 
+# 不查空气质量
+python demo/weather_brief.py Tianjin --date tomorrow --every 3 --compact --no-air-quality
+
 # 离线 fixture（日期固定为 2026-10-22）
 python demo/weather_brief.py Tokyo --offline --date 2026-10-22 --window 08:00-12:00
 ```
@@ -119,28 +153,37 @@ python demo/weather_brief.py Tokyo --offline --date 2026-10-22 --window 08:00-12
 输出包含：
 
 - `coverage`：日期、窗口、明细模式（`summary` / `sparse` / `hourly`）、步长、窗口小时数、实际输出小时数、源证据覆盖范围；
-- `summary`：温度/体感的 min/max、降雨概率最大值、降水量合计、风速/阵风最大值；
+- `summary`：温度/体感的 min/max、降雨概率最大值、降水量合计、风速/阵风最大值；开启空气质量时还有 PM2.5 / PM10 的 min/max；
+- `air_quality`：仅在使用空气质量时出现，包含 `kind`（预报模型而非实测）、`index_scales`（两套 AQI 标度）、`us_aqi` / `european_aqi` 的 min/max 与证据 ID，以及"两套标度不可直接比较"的说明；
 - `hours`：每个小时的数值与对应 `evidence_id`（`--summary-only` 时省略）；
-- `source`：提供方、模式、获取时间、署名与许可；
-- `demo_gaps`：demo 不提供的证据类型（官方预警、空气质量、紫外线等）。
+- `source`：提供方、模式、获取时间、署名与许可；开启空气质量时另有 `air_quality_attribution`；
+- `demo_gaps`：demo 不提供的证据类型（官方预警、紫外线、湿度、能见度等）。
+
+`hours[].values` 中两种 AQI 分别以 `us_aqi` 和 `european_aqi` 为键，因为它们
+共用 `air_quality_index` 这一证据类型，必须按标度区分。
 
 与完整 envelope 的区别：
 
 | 项目 | `weather_demo.py` | `weather_brief.py` |
 | --- | --- | --- |
 | 输出 | 完整 `weather_evidence` | 窗口化摘要 + 证据 ID |
-| 默认体积（离线 12 小时） | 约 22 KB | 9.9 KB |
-| `--compact` | — | 7.2 KB |
-| `--every 3 --compact` | — | 3.6 KB |
-| `--summary-only` | — | 2.4 KB |
-| `--summary-only --compact` | — | **1.7 KB** |
+| 默认体积（离线 12 小时，含空气质量） | 43.7 KB | 15.3 KB |
+| `--compact` | — | 11.2 KB |
+| `--every 3 --compact` | — | 5.6 KB |
+| `--summary-only` | — | 4.0 KB |
+| `--summary-only --compact` | — | **2.8 KB** |
+| `--no-air-quality`（12 小时） | 22.6 KB | 9.9 KB |
+| `--no-air-quality --summary-only --compact` | — | 1.7 KB |
 | 用途 | 校验、调试、完整输入 | Agent 日常咨询 |
 
 `--summary-only` 只保留统计值和对应证据 ID；需要时间分布时用 `--every 3` 保留每 3 小时一个真实证据点。`--compact` 去掉 JSON 缩进，适合直接交给 Agent。
 
-实时 24 小时实测：hourly compact 约 12.7 KB，`--every 3 --compact` 约 5.4 KB，`--summary-only --compact` 约 1.7 KB。
+实时 24 小时实测（天津）：hourly compact 约 19.6 KB，`--every 3 --compact` 约 8.4 KB，`--summary-only --compact` 约 2.8 KB；用 `--no-air-quality` 时分别为约 12.7 KB、5.4 KB、1.7 KB。全天完整信封约 86 KB。
 
-`weather_brief.py` 不产生建议，也不替代官方预警或空气质量数据；它只是
+空气质量约占体积的 1/3。上下文紧张且问题只关心天气时用 `--no-air-quality`；
+但涉及跑步、骑行等剧烈户外活动时，空气质量往往才是决定性的那一项。
+
+`weather_brief.py` 不产生建议，也不替代官方预警或空气质量公报；它只是
 `weather_demo.py` 证据的紧凑投影。两者都保留 Open-Meteo 署名和许可信息。
 
 ## 交给 Agent 使用
@@ -164,6 +207,8 @@ python tests/check_evidence.py /tmp/tokyo-response.json /tmp/tokyo-input.json
 
 ## 字段映射
 
+天气字段来自 `api.open-meteo.com/v1/forecast`：
+
 | Open-Meteo hourly 字段 | Evidence `type` | 单位 |
 | --- | --- | --- |
 | `temperature_2m` | `temperature` | `°C` |
@@ -173,19 +218,34 @@ python tests/check_evidence.py /tmp/tokyo-response.json /tmp/tokyo-input.json
 | `wind_speed_10m` | `wind_speed` | `km/h` |
 | `wind_gusts_10m` | `wind_gust` | `km/h` |
 
+空气质量字段来自 `air-quality-api.open-meteo.com/v1/air-quality`：
+
+| Open-Meteo hourly 字段 | Evidence `type` | 单位 |
+| --- | --- | --- |
+| `pm2_5` | `particulate_matter_2_5` | `μg/m³` |
+| `pm10` | `particulate_matter_10` | `μg/m³` |
+| `us_aqi` | `air_quality_index` | `USAQI` |
+| `european_aqi` | `air_quality_index` | `EAQI` |
+
 - 时间按地点时区返回，带 UTC 偏移；每个证据的有效期是 1 小时。
 - `observed_at` 是本次请求时间，不是气象观测时间。
 - 值为 `null` 的字段会跳过，不会补零或补默认值。
-- `id` 形如 `ev-000-temperature_2m`，同一次输出内唯一。
+- `id` 形如 `ev-000-temperature_2m` 或 `ev-aq-000-pm2_5`，同一次输出内唯一。
+- 两个端点各自返回逐小时数组，按时间戳合并；某个小时只在一边存在时，该小时
+  在另一边缺席，不会错位对齐。
+- 两个 AQI 字段共用 `air_quality_index` 类型，因此都带 `description` 说明标度，
+  这是 [`references/evidence-contract.md`](../references/evidence-contract.md)
+  对索引类证据的要求。两套标度数值不可直接比较。
 
 ## offline 与 live
 
 | 模式 | 命令 | 数据来源 | 是否联网 |
 | --- | --- | --- | --- |
-| `live` | `python demo/weather_demo.py Tokyo` | Open-Meteo 公共 API | 是 |
+| `live` | `python demo/weather_demo.py Tokyo` | Open-Meteo 公共 API（天气 + 空气质量） | 是 |
 | `offline` | `python demo/weather_demo.py Tokyo --offline` | `demo/fixtures/` 固定数据 | 否 |
 
-`offline` 只内置东京 fixture，用于测试与演示，输出中的 `metadata.data_note`
+`offline` 只内置东京 fixture（`forecast-tokyo.json` 与
+`air-quality-tokyo.json`），用于测试与演示，输出中的 `metadata.data_note`
 会明确标记为合成数据。其他城市请使用 `live` 模式。
 
 ## 数据来源、署名与限制
@@ -193,6 +253,13 @@ python tests/check_evidence.py /tmp/tokyo-response.json /tmp/tokyo-input.json
 - 天气数据由 [Open-Meteo](https://open-meteo.com/) 提供，数据许可为
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。展示数据时应保留
   `Weather data by Open-Meteo.com` 署名。
+- 空气质量数据来自 Open-Meteo 的空气质量端点，底层为 CAMS 预报模型，同样适用
+  CC BY 4.0，署名保留 `Air quality data by Open-Meteo.com (CAMS)`。它是**预报
+  模型输出，不是地面监测站实测值**，可能与环境监测部门的站点数据存在偏差。
+  判断是否适宜户外活动时，应以当地生态环境部门发布的 AQI 和官方公报为准。
+- AQI 有多种标度。本 demo 同时给出 US AQI 与 European AQI，并在证据
+  `description` 和 brief 的 `air_quality.index_scales` 中说明标度；两者数值
+  不可直接比较，跨时段比较趋势时应优先看 PM2.5 / PM10 浓度。
 - Open-Meteo 的免费公共 API 面向非商业使用；官方文档当前标注免费层约每日
   10,000 次请求。带订阅、广告等商业产品通常属于商业使用，需要选择符合用途的
   授权方案或自托管。
@@ -213,9 +280,13 @@ Demo 与 Skill 核心分离，替换数据源不需要改 `SKILL.md` 或 Schema�
 4. 输出同样的输入信封，把 `source` 换成新提供方，并保留其署名和许可信息。
 5. 如果提供方有官方预警，映射为 `severe_weather_alert`，保留发布机构、等级和
    有效期。
+6. 如果提供方有空气质量或花粉等额外维度，同样映射为证据类型并保留 `source`；
+   索引类数据必须说明标度。
 
 也可以参考 `weather_demo.py` 的 `geocode`、`fetch_forecast`、
-`build_evidence` 三个函数的边界，替换其中任意一层。
+`fetch_air_quality`、`build_evidence` 四个函数的边界，替换其中任意一层。
+`build_evidence` 接受可选的 `air_quality` 载荷，把它合并到天气时间线上；
+传 `None` 就只输出天气证据。
 
 ## 测试
 
@@ -224,8 +295,8 @@ python tests/test_demo.py
 ```
 
 这是 L1 数据层测试：使用离线 fixture，覆盖地理编码、字段映射、单位、有效期、
-ID 唯一性、信封结构和 CLI，不访问网络。完整的 L1/L2/L3 分层说明见
-[`tests/README.md`](../tests/README.md)。
+ID 唯一性、信封结构、空气质量合并与 `--no-air-quality`，以及 CLI，不访问网络。
+完整的 L1/L2/L3 分层说明见 [`tests/README.md`](../tests/README.md)。
 
 ## 生产化缺口
 
@@ -237,6 +308,8 @@ ID 唯一性、信封结构和 CLI，不访问网络。完整的 L1/L2/L3 分层
 - 预报发布时间与有效期的独立校验（当前 `observed_at` 记录的是获取时间）。
 - 缺失字段的业务处理（当前直接跳过，不推断默认值）。
 - 数据缓存、审计和提供方切换时的兼容性测试。
+- 空气质量数据源的可替换性（当前硬编码 Open-Meteo 的 CAMS 端点；官方监测站
+  数据需要另接提供方）。
 
 ## 错误处理
 
