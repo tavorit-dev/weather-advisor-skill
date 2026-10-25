@@ -137,6 +137,13 @@ root and use the slash command:
 /weather-advisor --live Osaka travel tomorrow
 ```
 
+`/weather-advisor-card` renders a structured response as a self-contained HTML
+card, optionally folding in the windowed evidence to show hourly curves:
+
+```text
+/weather-advisor-card /tmp/response.json --brief /tmp/brief.json --open
+```
+
 Natural-language weather questions also trigger it. Install it for personal use
 with:
 
@@ -146,8 +153,8 @@ python3 scripts/install_claude_skill.py
 
 An optional Stop hook can validate a requested JSON response against the
 schema; it is disabled by default. See
-[`docs/claude-code.md`](docs/claude-code.md) for live mode, installation,
-hooks, and verification.
+[`docs/claude-code.md`](docs/claude-code.md) for live mode, card rendering,
+installation, hooks, and verification.
 
 ## What is included
 
@@ -170,7 +177,7 @@ model-specific prompt tuning. See
 | --- | --- |
 | [`SKILL.md`](SKILL.md) | Entry point, workflow, and hard rules read by the agent |
 | [`docs/getting-started.md`](docs/getting-started.md) | Host integration, full input/output examples, demo, validation |
-| [`docs/claude-code.md`](docs/claude-code.md) | Claude Code entry, `/weather-advisor`, install script, optional hook |
+| [`docs/claude-code.md`](docs/claude-code.md) | Claude Code entries, `/weather-advisor`, the card, install script, optional hook |
 | [`docs/architecture.md`](docs/architecture.md) | Scope, workflow, status model, intents, design decisions |
 | [`docs/examples-and-tests.md`](docs/examples-and-tests.md) | Example pairs, test coverage, three test layers |
 | [`docs/repository-layout.md`](docs/repository-layout.md) | Annotated repository tree |
@@ -197,11 +204,15 @@ python demo/weather_demo.py Tokyo --offline
 
 # Compact, windowed evidence for agent consultations
 python demo/weather_brief.py Tokyo --date today --window 10:00-16:00 --compact
+
+# Render a response as a visual card
+python demo/weather_card.py response.json --brief brief.json --output card.html
 ```
 
 `weather_brief.py` returns only the requested hours, summary statistics, and
 evidence IDs. The compact mode is typically 3–20 KB, against roughly
-44–86 KB for a live full-day envelope. See
+44–86 KB for a live full-day envelope. `weather_card.py` renders those evidence
+alongside the response as one self-contained HTML card, adding no new data. See
 [`docs/claude-code.md`](docs/claude-code.md#token-efficient-consultation-pattern)
 for the consultation pattern.
 
@@ -221,6 +232,7 @@ python -m pip install -r tests/requirements.txt
 
 python tests/test_demo.py
 python tests/test_weather_brief.py
+python tests/test_weather_card.py
 python tests/test_claude_integration.py
 python tests/run_examples.py
 python tests/validate_cases.py

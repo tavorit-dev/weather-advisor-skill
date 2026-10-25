@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `/weather-advisor-card`, a second Claude Code entry at
+  `.claude/skills/weather-advisor-card/SKILL.md`, which renders a schema-valid
+  response as one self-contained HTML card. It delegates the rules to the same
+  canonical `SKILL.md`.
+- `demo/weather_card.py` and `demo/card.css`: the card renderer and its styles.
+  Given a response alone it shows the status, intent, summary, evidence,
+  recommendations, risks, missing information, and uncertainty; given a brief
+  from `demo/weather_brief.py` it adds window tiles and hourly curves for
+  temperature, apparent temperature, rain chance, precipitation, wind, gusts,
+  PM2.5, and PM10, each labelled with its peak figure and the evidence IDs
+  behind it. It adds no weather facts of its own, never rewrites the response,
+  and rejects a response with a missing required field, an unknown `status` or
+  `intent`, or a `needs_clarification` without a question. The output is a
+  single file with no scripts, external stylesheets, or remote images, so it
+  opens offline and follows the viewer's light or dark preference.
+  `--check` verifies an existing card file; `--open` opens the result.
+- `tests/test_weather_card.py`, an offline L1 suite covering self-containment,
+  verbatim rendering of the response, curves and their evidence IDs,
+  attribution and gap disclosure, the no-brief and summary-only paths, HTML
+  escaping, and rejection of invalid input.
 - English README as the default (`README.md`), with the Chinese version in
   `README.zh.md`; both are maintained as a synchronized pair.
 - Detailed guides under `docs/`: getting started and host integration,
@@ -90,6 +110,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   version and the English version moved to `README.en.md`; both were updated in
   place, and `CLAUDE.md`, `docs/repository-layout.md`, and this file now point
   at the new paths.
+- `scripts/install_claude_skill.py` now installs both Claude Code entries. The
+  card entry lands at `card/SKILL.md` inside the installed skill, and each
+  entry's relative link to the canonical skill is rewritten for its own depth.
+  Claude Code derives a skill's name from its frontmatter, so the nesting does
+  not change the command name and does not shadow the main `SKILL.md`.
+- The pre-commit validation list now has six commands:
+  `tests/test_weather_card.py` joins the five required checks, in `CLAUDE.md`,
+  `README.md`, `README.en.md`, `tests/README.md`, and
+  `docs/getting-started.md`.
 
 ## [0.1.0] - 2026-10-21
 

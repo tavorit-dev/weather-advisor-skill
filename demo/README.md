@@ -186,6 +186,44 @@ python demo/weather_brief.py Tokyo --offline --date 2026-10-22 --window 08:00-12
 `weather_brief.py` 不产生建议，也不替代官方预警或空气质量公报；它只是
 `weather_demo.py` 证据的紧凑投影。两者都保留 Open-Meteo 署名和许可信息。
 
+## 可视化卡片（weather_card.py）
+
+`weather_card.py` 把一份符合
+[`schemas/recommendation.schema.json`](../schemas/recommendation.schema.json)
+的响应渲染成一张自包含的 HTML 卡片，可选地叠加 `weather_brief.py` 的窗口化
+证据，让卡片带上建议背后的逐小时曲线。
+
+```bash
+# 只渲染响应
+python demo/weather_card.py response.json --output card.html
+
+# 叠加窗口证据
+python demo/weather_card.py response.json --brief brief.json --output card.html
+
+# 打开浏览器 / 校验已有卡片
+python demo/weather_card.py response.json --brief brief.json --open
+python demo/weather_card.py --check card.html
+```
+
+它只做渲染，不做分析：不新增天气数值、阈值或建议，也不改写响应。卡片上的每个
+数字都来自传入的响应或 brief。
+
+| 输入 | 卡片内容 |
+| --- | --- |
+| 仅响应 | 状态、意图、摘要、证据、建议、风险、缺失信息、不确定性 |
+| 响应 + brief | 追加窗口摘要磁贴与逐小时曲线（温度、体感、降雨概率、降水量、风速、阵风、PM2.5、PM10），每条曲线标注峰值与对应 `evidence_id` |
+
+卡片另外保留 Open-Meteo 署名与许可、空气质量为 CAMS 预报模型的说明、两套 AQI
+标度不可直接比较的提示，以及 brief 的 `demo_gaps`（含「没有提供预警不等于没有
+预警」）。分享卡片时应一并保留。
+
+响应缺少必填字段、`status` 或 `intent` 不在枚举内、或 `needs_clarification`
+没有追问问题时，脚本会报错退出并说明原因，而不是渲染成一张看起来合理的卡片。
+
+卡片不引用任何外部资源（无脚本、无外链样式、无远程图片），因此可以离线打开并
+作为单个文件分享；配色跟随查看者的浅色/深色偏好。默认写入临时文件并打印路径，
+`--output` 指定路径，`--open` 用浏览器打开，`--check` 校验已有卡片文件。
+
 ## 交给 Agent 使用
 
 ```bash

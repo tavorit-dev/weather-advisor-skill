@@ -10,7 +10,7 @@ weather-advisor-skill/
 ├── LICENSE
 ├── docs/
 │   ├── getting-started.md         # Host integration, examples, demo, validation
-│   ├── claude-code.md             # Claude Code entry, install script, optional hook
+│   ├── claude-code.md             # Claude Code entries, install script, optional hook
 │   ├── architecture.md            # Scope, workflow, status model, intents, principles
 │   ├── examples-and-tests.md      # Example pairs and test coverage
 │   └── repository-layout.md       # This file
@@ -19,8 +19,10 @@ weather-advisor-skill/
 ├── .claude/
 │   ├── settings.json              # Hooks are opt-in; empty by default
 │   ├── skills/
-│   │   └── weather-advisor/
-│   │       └── SKILL.md           # Claude Code entry and /weather-advisor
+│   │   ├── weather-advisor/
+│   │   │   └── SKILL.md           # Claude Code entry and /weather-advisor
+│   │   └── weather-advisor-card/
+│   │       └── SKILL.md           # /weather-advisor-card
 │   └── hooks/
 │       └── validate-weather-output.py  # Optional Stop hook / manual validator
 ├── references/
@@ -46,6 +48,8 @@ weather-advisor-skill/
 ├── demo/                          # Key-free demo: Open-Meteo -> evidence
 │   ├── weather_demo.py            # Weather + air quality -> evidence envelope
 │   ├── weather_brief.py           # Compact windowed evidence view for agents
+│   ├── weather_card.py            # Response (+ brief) -> self-contained HTML card
+│   ├── card.css                   # Card styles, inlined into the rendered card
 │   ├── fixtures/                  # Synthetic Tokyo data for offline mode
 │   │   ├── geocoding-tokyo.json
 │   │   ├── forecast-tokyo.json
@@ -60,7 +64,8 @@ weather-advisor-skill/
     ├── grade_case.py              # Grade one response against one case
     ├── test_demo.py               # L1 data-layer tests (offline)
     ├── test_weather_brief.py      # Compact brief tests (offline)
-    ├── test_claude_integration.py # Claude Code entry, installer, and hook tests
+    ├── test_weather_card.py       # HTML card renderer tests (offline)
+    ├── test_claude_integration.py # Claude Code entries, installer, and hook tests
     ├── requirements.txt
     └── README.md
 ```

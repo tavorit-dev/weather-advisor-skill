@@ -161,6 +161,19 @@ It returns only the requested hours, summary statistics, and evidence IDs;
 [`claude-code.md`](claude-code.md#token-efficient-consultation-pattern) for the
 recommended consultation pattern.
 
+To present a response as a visual card instead of prose, render it with
+`demo/weather_card.py`:
+
+```bash
+python demo/weather_card.py response.json --brief brief.json --output card.html
+```
+
+The card is a self-contained HTML file that restates the response and, when a
+brief is supplied, adds the window tiles and hourly curves behind the advice.
+It adds no weather facts of its own. See
+[`claude-code.md`](claude-code.md#visual-card) for the full behaviour, and
+[`demo/README.md`](../demo/README.md#可视化卡片weather_cardpy) for the renderer.
+
 ### Data source and licensing
 
 - Weather data is provided by [Open-Meteo](https://open-meteo.com/) under the
@@ -185,6 +198,8 @@ source .venv/bin/activate
 python -m pip install -r tests/requirements.txt
 
 python tests/test_demo.py          # L1: offline data layer, no third-party dependency
+python tests/test_weather_brief.py # L1: compact brief windowing and statistics
+python tests/test_weather_card.py  # L1: HTML card rendering
 python tests/run_examples.py       # Schema and evidence linkage for all six examples
 python tests/validate_cases.py     # Lint the 32 cases
 ```
