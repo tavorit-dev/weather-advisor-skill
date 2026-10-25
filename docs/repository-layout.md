@@ -3,14 +3,11 @@
 ```text
 weather-advisor-skill/
 ├── SKILL.md                       # Skill entry: workflow and hard constraints
-├── README.md                      # English README (default)
-├── README.zh.md                   # Chinese README
+├── README.md                      # Chinese README (default)
+├── README.en.md                   # English README
 ├── CLAUDE.md                      # Conventions and invariants for contributors
 ├── CHANGELOG.md
 ├── LICENSE
-├── images/
-│   ├── banner.png                 # README banner
-│   └── logo.png                   # Project logo
 ├── docs/
 │   ├── getting-started.md         # Host integration, examples, demo, validation
 │   ├── claude-code.md             # Claude Code entry, install script, optional hook

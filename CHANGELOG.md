@@ -40,8 +40,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   offline brief drops from 9.9 KB to 7.2 KB compact, 3.6 KB at `--every 3`, or
   1.7 KB with summary-only compact.
 
-- Project banner and logo under `images/`, shown at the top of `README.md` and
-  `README.zh.md`.
+- Project banner and logo under `images/`, shown at the top of the READMEs.
+
+### Removed
+
+- The README banner (`images/banner.png`). It was a 1280×640 image at
+  `width="100%"`, so it took most of the first screen while carrying almost no
+  information; both READMEs now open on the title and language switch instead.
+- `images/logo.png` and the `images/` directory. The logo was a 200×200 square
+  with a white background, so it could not serve as a wordmark on a dark theme;
+  the header is now text and badges only, and nothing else referenced it.
 
 ### Changed
 
@@ -50,6 +58,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed the English README from `README.en.md` to `README.md`; the Chinese
   README moved to `README.zh.md`.
 - Corrected the license reference from MIT to Apache-2.0, matching `LICENSE`.
+- Aligned both READMEs with the current test layout: the local-validation block
+  now lists `test_weather_brief.py` and `test_claude_integration.py` alongside
+  `test_demo.py`, matching the five commands required before a commit.
+- Added the compact brief size range (1.7–13 KB against roughly 50–100 KB for a
+  live full-day envelope) to both READMEs, so the token-saving claim is
+  quantified where the demo commands are shown.
+- Referred to the 32 entries in `tests/cases.jsonl` as acceptance cases rather
+  than test cases, matching `tests/README.md`.
+- Made Simplified Chinese the default README. `README.md` is now the Chinese
+  version and the English version moved to `README.en.md`; both were updated in
+  place, and `CLAUDE.md`, `docs/repository-layout.md`, and this file now point
+  at the new paths.
 
 ## [0.1.0] - 2026-10-21
 
