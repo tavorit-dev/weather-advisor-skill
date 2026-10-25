@@ -124,7 +124,19 @@ class WeatherBriefTests(unittest.TestCase):
         compact = run(*common, "--compact")
         self.assertEqual(pretty.returncode, 0, pretty.stderr)
         self.assertEqual(compact.returncode, 0, compact.stderr)
-        self.assertEqual(json.loads(pretty.stdout), json.loads(compact.stdout))
+
+        # --compact changes serialization only. The two runs are separate
+        # processes, so their retrieved_at wall clock can differ by a second;
+        # that one field is excluded rather than making the test flaky.
+        def without_timestamp(payload: dict) -> dict:
+            payload = json.loads(json.dumps(payload))
+            payload.get("source", {}).pop("retrieved_at", None)
+            return payload
+
+        self.assertEqual(
+            without_timestamp(json.loads(pretty.stdout)),
+            without_timestamp(json.loads(compact.stdout)),
+        )
         self.assertLess(len(compact.stdout), len(pretty.stdout))
         self.assertEqual(compact.stdout.count("\n"), 1)
 

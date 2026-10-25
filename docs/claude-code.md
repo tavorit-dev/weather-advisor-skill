@@ -146,6 +146,8 @@ replaceable demo layer:
 
 ```bash
 python3 demo/weather_card.py response.json --brief brief.json --output card.html
+python3 demo/weather_card.py response.json --query "今日天津天气" --output card.html
+python3 demo/weather_card.py response.json --brief brief.json --print
 python3 demo/weather_card.py --check card.html
 ```
 
@@ -166,9 +168,45 @@ python3 demo/weather_card.py --check card.html
   opens offline and can be shared as a single file. It follows the viewer's
   light or dark preference.
 
+### Language
+
+The card's interface follows the question, not the response:
+
+```bash
+python3 demo/weather_card.py response.json --query "今日天津天气" --output card.html
+python3 demo/weather_card.py response.json --lang zh --output card.html
+```
+
+`--query` takes the user's question; a question containing Han characters
+selects the Chinese interface, and anything else selects English, which is the
+default. `--lang zh|en` overrides it, and regional tags such as `zh-CN` or
+`en-US` are accepted.
+
+Only the card's own labels are translated. The response's prose is printed
+verbatim in whatever language it was written, so a Chinese question against an
+English response is a normal case: Chinese chrome, English body. The response's
+text is deliberately not inspected to choose the language, because that would
+make the interface follow the response instead of the user.
+
+### Exporting as an image
+
+```bash
+python3 demo/weather_card.py response.json --brief brief.json --print --output card.html
+```
+
+`--print` opens the card and points at the browser's print dialog (Ctrl/Cmd+P),
+where **Save as PDF** produces the exported file. This is the supported export
+path because it keeps the card script-free: a PNG would need an inline canvas
+script or a headless browser, and both would break the single-file,
+offline-openable property.
+
+The print stylesheet forces light ink on white regardless of the viewer's theme,
+prevents a card from splitting across pages, and drops the on-screen print hint,
+so the export reads as a document rather than a screenshot of the dark theme.
+
 Output goes to a temporary file whose path is printed, or to `--output`.
-`--open` opens it in the browser. `--check` verifies an existing card file is
-well-formed.
+`--open` opens it in the browser, and `--print` opens it and explains the export
+step. `--check` verifies an existing card file is well-formed.
 
 Because the card restates the demo's evidence, it keeps the Open-Meteo
 attribution and license, states that air quality is a CAMS modelled forecast

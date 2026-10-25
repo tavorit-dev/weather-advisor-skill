@@ -6,9 +6,15 @@ The card is a read-only view of a response that already conforms to
 evidence from ``demo/weather_brief.py``. It adds no weather facts of its own: it
 prints what the response and the brief contain, and nothing else.
 
+Only the card's own interface labels are translated. The response's prose
+(summary, claims, actions, reasons, risks) is printed exactly as the response
+supplied it, in whatever language that is; the renderer never rewrites it.
+
 Usage:
     python demo/weather_card.py response.json --output card.html
     python demo/weather_card.py response.json --brief brief.json --open
+    python demo/weather_card.py response.json --lang zh --open
+    python demo/weather_card.py response.json --print --output card.html
     python demo/weather_card.py --check card.html
 """
 
@@ -19,6 +25,7 @@ import html
 import json
 import sys
 import tempfile
+import unicodedata
 import webbrowser
 from datetime import datetime
 from pathlib import Path
@@ -29,61 +36,266 @@ try:
 except ModuleNotFoundError:  # imported as demo.weather_card
     from demo.weather_demo import DemoError, INTENTS  # type: ignore[no-redef]
 
-STATUS_LABELS = {
-    "answered": "answered",
-    "needs_clarification": "needs clarification",
-    "insufficient_evidence": "insufficient evidence",
+# Interface strings. Keys are stable identifiers; values are per-language.
+# Adding a language means adding one column, not touching the markup.
+STRINGS: dict[str, dict[str, str]] = {
+    "en": {
+        "title": "Weather Advisor Card",
+        "html_lang": "en",
+        "answered": "answered",
+        "needs_clarification": "needs clarification",
+        "insufficient_evidence": "insufficient evidence",
+        "low": "low",
+        "medium": "medium",
+        "high": "high",
+        "unknown": "unknown",
+        "severe_weather_alert": "official alerts",
+        "uv_index": "UV index",
+        "humidity": "humidity",
+        "visibility": "visibility",
+        "thunderstorm": "thunderstorm",
+        "temperature": "Temperature",
+        "apparent_temperature": "Feels like",
+        "precipitation_probability": "Rain chance",
+        "precipitation_amount": "Precipitation",
+        "wind_speed": "Wind",
+        "wind_gust": "Wind gusts",
+        "particulate_matter_2_5": "PM2.5",
+        "particulate_matter_10": "PM10",
+        "us_aqi": "US AQI",
+        "european_aqi": "European AQI",
+        "window_evidence": "Window evidence",
+        "no_summary_values": "The brief carries no summary values.",
+        "no_curves": "The brief has no hourly rows, so no curves are shown.",
+        "not_covered": "Not covered by this demo",
+        "not_covered_body": (
+            "{gaps}. Absence of an alert here is not evidence that no alert is "
+            "in effect."
+        ),
+        "air_quality": "Air quality",
+        "air_quality_body": (
+            "PM2.5 peak {pm25}, US AQI {us}, European AQI {eu}. Modelled "
+            "forecast (CAMS), not a ground-station measurement; the two AQI "
+            "scales are not directly comparable."
+        ),
+        "evidence": "Evidence",
+        "recommendations": "Recommendations",
+        "risks": "Risks",
+        "missing_information": "Missing information",
+        "uncertainty": "Uncertainty",
+        "clarification_needed": "Clarification needed",
+        "no_evidence": "No evidence entries in this response.",
+        "no_recommendations": "No recommendations in this response.",
+        "no_risks": "No risks listed in this response.",
+        "weather_advice": "Weather advice",
+        "hours_shown": "{included}/{total} hours shown",
+        "every_hours": "every {step}h",
+        "mode": "{mode} mode",
+        "total_peak": "{total} total / {peak} peak",
+        "curve_label": "{label} over {window}",
+        "footer_meta": "schema_version {version} · intent {intent} · status {status}",
+        "footer_disclaimer": (
+            "This card is a rendering of a Weather Advisor response and its "
+            "windowed evidence. It contains no weather data of its own, and it "
+            "is not an official warning or an official air-quality bulletin."
+        ),
+        "source_prefix": "Source: {provider}",
+        "licensed_under": "Licensed under {license}",
+        "print_hint": "Print or save as PDF to export this card as an image.",
+    },
+    "zh": {
+        "title": "天气建议卡片",
+        "html_lang": "zh-CN",
+        "answered": "已回答",
+        "needs_clarification": "需要澄清",
+        "insufficient_evidence": "证据不足",
+        "low": "低",
+        "medium": "中",
+        "high": "高",
+        "unknown": "未知",
+        "severe_weather_alert": "官方预警",
+        "uv_index": "紫外线指数",
+        "humidity": "湿度",
+        "visibility": "能见度",
+        "thunderstorm": "雷暴",
+        "temperature": "气温",
+        "apparent_temperature": "体感温度",
+        "precipitation_probability": "降水概率",
+        "precipitation_amount": "降水量",
+        "wind_speed": "风速",
+        "wind_gust": "阵风",
+        "particulate_matter_2_5": "PM2.5",
+        "particulate_matter_10": "PM10",
+        "us_aqi": "US AQI",
+        "european_aqi": "European AQI",
+        "window_evidence": "时段证据",
+        "no_summary_values": "该摘要不含统计值。",
+        "no_curves": "该摘要没有逐小时数据，因此不绘制曲线。",
+        "not_covered": "本 demo 未覆盖",
+        "not_covered_body": "{gaps}。此处没有预警信息，不等于没有预警生效。",
+        "air_quality": "空气质量",
+        "air_quality_body": (
+            "PM2.5 峰值 {pm25}，US AQI {us}，European AQI {eu}。"
+            "CAMS 预报模型输出，非地面监测站实测值；两套 AQI 标度不可直接比较。"
+        ),
+        "evidence": "证据",
+        "recommendations": "建议",
+        "risks": "风险",
+        "missing_information": "缺失信息",
+        "uncertainty": "不确定性",
+        "clarification_needed": "需要澄清",
+        "no_evidence": "该响应中没有证据条目。",
+        "no_recommendations": "该响应中没有建议。",
+        "no_risks": "该响应中没有列出风险。",
+        "weather_advice": "天气建议",
+        "hours_shown": "显示 {included}/{total} 小时",
+        "every_hours": "每 {step} 小时",
+        "mode": "{mode} 模式",
+        "total_peak": "合计 {total} / 峰值 {peak}",
+        "curve_label": "{window} 内的{label}",
+        "footer_meta": "schema_version {version} · 意图 {intent} · 状态 {status}",
+        "footer_disclaimer": (
+            "本卡片是 Weather Advisor 响应及其时段证据的渲染结果，本身不含任何"
+            "天气数据，也不构成官方预警或官方空气质量公报。"
+        ),
+        "source_prefix": "数据来源：{provider}",
+        "licensed_under": "许可协议 {license}",
+        "print_hint": "打印或另存为 PDF，即可将本卡片导出为图片。",
+    },
 }
-SEVERITY_LABELS = {
-    "low": "low",
-    "medium": "medium",
-    "high": "high",
-    "unknown": "unknown",
-}
-DEMO_GAP_LABELS = {
-    "severe_weather_alert": "official alerts",
-    "uv_index": "UV index",
-    "humidity": "humidity",
-    "visibility": "visibility",
-    "thunderstorm": "thunderstorm",
-}
+DEFAULT_LANG = "en"
+LANGS = tuple(STRINGS)
 
-# Rows in the summary tiles, and the mode used to read each one. Precipitation
-# is summed over the window while the others are single hours, so it is read
-# from both the window total and the wettest hour.
+# Interface label keys for the tiles and curves. Kept separate from the
+# evidence-type keys so a metric's row key and its label can differ.
 TILE_ROWS = (
-    ("Temperature", "temperature", "°C", "min/max"),
-    ("Rain chance", "precipitation_probability", "%", "max"),
-    ("Precipitation", "precipitation_amount", "mm", "total"),
-    ("Wind", "wind_speed", "km/h", "max"),
-    ("PM2.5", "particulate_matter_2_5", "μg/m³", "max"),
-    ("US AQI", "us_aqi", "USAQI", "min/max"),
+    ("temperature", "temperature", "°C", "min/max"),
+    ("precipitation_probability", "precipitation_probability", "%", "max"),
+    ("precipitation_amount", "precipitation_amount", "mm", "total"),
+    ("wind_speed", "wind_speed", "km/h", "max"),
+    ("particulate_matter_2_5", "particulate_matter_2_5", "μg/m³", "max"),
+    ("us_aqi", "us_aqi", "USAQI", "min/max"),
 )
 # Tiles that only exist when the brief carries air quality. A tile with no
 # value behind it is dropped rather than drawn as a dash, so a weather-only
 # brief cannot look like a brief whose air quality failed to load.
-AIR_TILES = ("PM2.5", "US AQI")
+AIR_TILES = ("particulate_matter_2_5", "us_aqi")
 
-# Metrics plotted as a curve over the brief's hours: label, key in
+# Metrics plotted as a curve over the brief's hours: label key, key in
 # ``hours[].values``, unit, and the summary key the headline figure comes from.
 CURVE_METRICS = (
-    ("Temperature", "temperature", "temperature", "°C", "min/max"),
-    ("Feels like", "apparent_temperature", "apparent_temperature", "°C", "min/max"),
+    ("temperature", "temperature", "temperature", "°C", "min/max"),
     (
-        "Rain chance",
+        "apparent_temperature",
+        "apparent_temperature",
+        "apparent_temperature",
+        "°C",
+        "min/max",
+    ),
+    (
+        "precipitation_probability",
         "precipitation_probability",
         "precipitation_probability",
         "%",
         "max",
     ),
-    ("Precipitation", "precipitation_amount", "precipitation_amount", "mm", "max"),
-    ("Wind", "wind_speed", "wind_speed", "km/h", "max"),
-    ("Wind gusts", "wind_gust", "wind_gust", "km/h", "max"),
-    ("PM2.5", "particulate_matter_2_5", "particulate_matter_2_5", "μg/m³", "max"),
-    ("PM10", "particulate_matter_10", "particulate_matter_10", "μg/m³", "max"),
+    (
+        "precipitation_amount",
+        "precipitation_amount",
+        "precipitation_amount",
+        "mm",
+        "max",
+    ),
+    ("wind_speed", "wind_speed", "wind_speed", "km/h", "max"),
+    ("wind_gust", "wind_gust", "wind_gust", "km/h", "max"),
+    (
+        "particulate_matter_2_5",
+        "particulate_matter_2_5",
+        "particulate_matter_2_5",
+        "μg/m³",
+        "max",
+    ),
+    (
+        "particulate_matter_10",
+        "particulate_matter_10",
+        "particulate_matter_10",
+        "μg/m³",
+        "max",
+    ),
 )
 CURVE_WIDTH = 480
 CURVE_HEIGHT = 120
+
+# A question is treated as Chinese when it contains Han characters. Anything
+# else falls back to English, which is the card's default interface language.
+HAN_RANGES = (
+    (0x3400, 0x4DBF),    # CJK Unified Ideographs Extension A
+    (0x4E00, 0x9FFF),    # CJK Unified Ideographs
+    (0xF900, 0xFAFF),    # CJK Compatibility Ideographs
+    (0x20000, 0x2FA1F),  # CJK Unified Ideographs Extension B and beyond
+)
+
+
+def has_han(text: str) -> bool:
+    """True when the text contains at least one Han character."""
+    for character in text:
+        point = ord(character)
+        if any(low <= point <= high for low, high in HAN_RANGES):
+            return True
+    return False
+
+
+def detect_lang(*texts: Any) -> str:
+    """Pick an interface language from user-supplied text.
+
+    Only the question decides the language. The response's own prose is never
+    inspected, because it is printed verbatim and may legitimately be in a
+    different language from the question.
+    """
+    for text in texts:
+        if isinstance(text, str) and has_han(text):
+            return "zh"
+    return DEFAULT_LANG
+
+
+def normalise_lang(value: str) -> str:
+    """Map a user-supplied language tag onto a supported language."""
+    if not isinstance(value, str):
+        raise DemoError(f"unsupported language: {value!r}")
+    tag = value.strip().lower().replace("_", "-")
+    if not tag:
+        raise DemoError("--lang cannot be empty")
+    if tag in STRINGS:
+        return tag
+    # Accept zh-CN, zh-Hans, zh-TW, en-US, and similar regional variants.
+    primary = tag.split("-", 1)[0]
+    if primary in STRINGS:
+        return primary
+    raise DemoError(
+        f"unsupported language: {value!r} (supported: {', '.join(LANGS)})"
+    )
+
+
+class Translator:
+    """Look up interface strings for one language."""
+
+    def __init__(self, lang: str) -> None:
+        self.lang = lang
+        self._table = STRINGS[lang]
+
+    def __call__(self, key: str, **fields: Any) -> str:
+        try:
+            template = self._table[key]
+        except KeyError as exc:  # pragma: no cover - internal misuse
+            raise DemoError(f"missing string {key!r} for language {self.lang!r}") from exc
+        if not fields:
+            return template
+        try:
+            return template.format(**fields)
+        except KeyError as exc:  # pragma: no cover - internal misuse
+            raise DemoError(
+                f"string {key!r} for {self.lang!r} has no field {exc.args[0]!r}"
+            ) from exc
 
 
 def esc(value: Any) -> str:
@@ -217,7 +429,7 @@ def check_response(response: dict[str, Any]) -> None:
         if field not in response:
             raise DemoError(f"response is missing required field: {field}")
     status = response["status"]
-    if status not in STATUS_LABELS:
+    if status not in STRINGS[DEFAULT_LANG]:
         raise DemoError(f"unknown status: {status!r}")
     intent = response["intent"]
     if intent not in INTENTS:
@@ -241,7 +453,7 @@ def reference_html(ids: Any) -> str:
     return f'<div class="refs">{chips}</div>' if chips else ""
 
 
-def window_html(brief: dict[str, Any]) -> str:
+def window_html(brief: dict[str, Any], t: Translator) -> str:
     coverage = brief.get("coverage") or {}
     location = brief.get("location") or {}
     metrics = brief.get("summary") or {}
@@ -260,23 +472,24 @@ def window_html(brief: dict[str, Any]) -> str:
     has_air = isinstance(air, dict)
 
     cards = []
-    for label, key, unit, mode in TILE_ROWS:
-        if label in AIR_TILES and not has_air:
+    for label_key, key, unit, tile_mode in TILE_ROWS:
+        if label_key in AIR_TILES and not has_air:
             continue
-        if mode == "total":
+        if tile_mode == "total":
             # The brief reports the window total and the wettest hour; showing
             # only one would misstate a summed quantity as a peak.
             total = extreme(metrics, key, "total")
             peak = extreme(metrics, key, "max_hour")
             if total is None and peak is None:
                 continue
-            value = (
-                f'{fmt_number(total.get("value") if total else None)} total / '
-                f'{fmt_number(peak.get("value") if peak else None)} peak'
+            value = t(
+                "total_peak",
+                total=fmt_number(total.get("value") if total else None),
+                peak=fmt_number(peak.get("value") if peak else None),
             )
         else:
-            entry = extreme(metrics, key, mode)
-            if entry is None and mode == "min/max":
+            entry = extreme(metrics, key, tile_mode)
+            if entry is None and tile_mode == "min/max":
                 # Some summaries carry only one extreme; show whichever exists.
                 entry = extreme(metrics, key, "max") or extreme(metrics, key, "min")
             if entry is None:
@@ -284,7 +497,7 @@ def window_html(brief: dict[str, Any]) -> str:
             value = format_extreme(entry, unit)
         cards.append(
             '<div class="metric">'
-            f'<div class="metric-label">{esc(label)}</div>'
+            f'<div class="metric-label">{esc(t(label_key))}</div>'
             f'<div class="metric-value">{esc(value)}</div>'
             f'<div class="metric-unit">{esc(unit)}</div>'
             "</div>"
@@ -293,24 +506,30 @@ def window_html(brief: dict[str, Any]) -> str:
     tiles_html = (
         '<div class="metrics">' + "".join(cards) + "</div>"
         if cards
-        else '<p class="muted">The brief carries no summary values.</p>'
+        else f'<p class="muted">{esc(t("no_summary_values"))}</p>'
     )
 
     curves = []
-    for label, values_key, summary_key, unit, mode_ in CURVE_METRICS:
+    for label_key, values_key, summary_key, unit, curve_mode in CURVE_METRICS:
         series = metric_values(values_key, brief)
         if len(series) < 2:
             continue
+        label = t(label_key)
         ids = metric_ids(values_key, brief)
-        peak = extreme(metrics, summary_key, mode_)
+        peak = extreme(metrics, summary_key, curve_mode)
         if peak is None and series:
             peak = {"value": max(series), "unit": unit}
+        title = t(
+            "curve_label",
+            label=label,
+            window=coverage.get("window") or "",
+        ).strip()
         curves.append(
             '<figure class="curve-card">'
             f'<figcaption><span>{esc(label)}</span>'
             f'<strong>{esc(format_extreme(peak, unit))} <small>{esc(unit)}</small></strong>'
             f"</figcaption>"
-            f"{sparkline(series, f'{label} over {coverage.get('window', 'the window')}')}"
+            f"{sparkline(series, title)}"
             f"{reference_html(ids)}"
             "</figure>"
         )
@@ -318,56 +537,52 @@ def window_html(brief: dict[str, Any]) -> str:
     curves_html = (
         '<div class="curves">' + "".join(curves) + "</div>"
         if curves
-        else '<p class="muted">The brief has no hourly rows, so no curves are shown.</p>'
+        else f'<p class="muted">{esc(t("no_curves"))}</p>'
     )
 
     gaps = brief.get("demo_gaps") or []
-    gap_labels = [DEMO_GAP_LABELS.get(gap, str(gap)) for gap in gaps]
+    gap_labels = [t(gap) if gap in STRINGS[t.lang] else str(gap) for gap in gaps]
     gaps_html = ""
     if gap_labels:
         gaps_html = (
-            '<div class="notice notice-gap"><strong>Not covered by this demo</strong>'
-            f"<p>{esc(', '.join(gap_labels))}. Absence of an alert here is not "
-            "evidence that no alert is in effect.</p></div>"
+            f'<div class="notice notice-gap"><strong>{esc(t("not_covered"))}</strong>'
+            f'<p>{esc(t("not_covered_body", gaps=", ".join(gap_labels)))}</p></div>'
         )
 
-    air = brief.get("air_quality")
     air_html = ""
     if has_air:
         us = extreme(air, "us_aqi", "min/max")
         eu = extreme(air, "european_aqi", "min/max")
         air_html = (
-            '<div class="notice notice-air"><strong>Air quality</strong>'
-            f"<p>PM2.5 peak {esc(format_extreme(extreme(metrics, 'particulate_matter_2_5', 'max'), 'μg/m³'))}, "
-            f"US AQI {esc(format_extreme(us, 'USAQI'))}, European AQI {esc(format_extreme(eu, 'EAQI'))}. "
-            "Modelled forecast (CAMS), not a ground-station measurement; the two "
-            "AQI scales are not directly comparable.</p></div>"
+            f'<div class="notice notice-air"><strong>{esc(t("air_quality"))}</strong>'
+            f'<p>{esc(t("air_quality_body", pm25=format_extreme(extreme(metrics, "particulate_matter_2_5", "max"), "μg/m³"), us=format_extreme(us, "USAQI"), eu=format_extreme(eu, "EAQI")))}</p></div>'
         )
+
+    meta = " · ".join(
+        [f"{name}", f"{date}", f"{window}", f"{detail}"]
+        + ([t("every_hours", step=esc(step))] if isinstance(step, int) and step > 1 else [])
+        + (
+            [t("hours_shown", included=esc(included), total=esc(in_window))]
+            if isinstance(included, int) and isinstance(in_window, int)
+            else []
+        )
+        + [f"{timezone}", t("mode", mode=mode)]
+    )
 
     return (
         '<section class="card window">'
-        '<div class="section-head"><h2>Window evidence</h2>'
+        f'<div class="section-head"><h2>{esc(t("window_evidence"))}</h2>'
         f'<span class="chip">{window}</span></div>'
-        f'<div class="window-meta">{name} · {date} · {window} · '
-        f"{esc(detail)}"
-        + (
-            f" · every {esc(step)}h"
-            if isinstance(step, int) and step > 1
-            else ""
-        )
-        + (
-            f" · {esc(included)}/{esc(in_window)} hours shown"
-            if isinstance(included, int) and isinstance(in_window, int)
-            else ""
-        )
-        + f" · {timezone} · {mode} mode</div>"
+        f'<div class="window-meta">{meta}</div>'
         f"{tiles_html}"
         f"{curves_html}{air_html}{gaps_html}"
         "</section>"
     )
 
 
-def body_html(response: dict[str, Any], brief: dict[str, Any] | None) -> str:
+def body_html(
+    response: dict[str, Any], brief: dict[str, Any] | None, t: Translator
+) -> str:
     summary = esc(response.get("summary", ""))
     evidence = response.get("evidence") or []
     recommendations = response.get("recommendations") or []
@@ -376,7 +591,7 @@ def body_html(response: dict[str, Any], brief: dict[str, Any] | None) -> str:
     uncertainty = response.get("uncertainty") or []
     question = response.get("clarification_question")
 
-    status = esc(STATUS_LABELS[response["status"]])
+    status = esc(t(response["status"]))
     intent = esc(str(response["intent"]).replace("_", " "))
     version = esc(response.get("schema_version", ""))
 
@@ -391,7 +606,7 @@ def body_html(response: dict[str, Any], brief: dict[str, Any] | None) -> str:
         f'<span class="ref">{esc(item.get("evidence_id", ""))}</span>'
         f'<p>{esc(item.get("claim", ""))}</p></li>'
         for item in evidence
-    ) or '<li class="muted">No evidence entries in this response.</li>'
+    ) or f'<li class="muted">{esc(t("no_evidence"))}</li>'
 
     recommendations_html = "".join(
         '<li class="rec">'
@@ -399,65 +614,67 @@ def body_html(response: dict[str, Any], brief: dict[str, Any] | None) -> str:
         f'<p class="rec-reason">{esc(item.get("reason", ""))}</p>'
         f"{reference_html(item.get('evidence_ids'))}</li>"
         for item in recommendations
-    ) or '<li class="muted">No recommendations in this response.</li>'
+    ) or f'<li class="muted">{esc(t("no_recommendations"))}</li>'
 
     risks_html = "".join(
         '<li class="risk">'
         f'<span class="severity severity-{esc(item.get("severity", "unknown"))}">'
-        f'{esc(SEVERITY_LABELS.get(item.get("severity"), "unknown"))}</span>'
+        f'{esc(t(item.get("severity") or "unknown"))}</span>'
         f'<div><p>{esc(item.get("description", ""))}</p>'
         f"{reference_html(item.get('evidence_ids'))}</div></li>"
         for item in risks
-    ) or '<li class="muted">No risks listed in this response.</li>'
+    ) or f'<li class="muted">{esc(t("no_risks"))}</li>'
 
     clarification_html = ""
     if isinstance(question, str) and question.strip():
         clarification_html = (
-            '<div class="notice notice-question"><strong>Clarification needed</strong>'
+            '<div class="notice notice-question">'
+            f'<strong>{esc(t("clarification_needed"))}</strong>'
             f"<p>{esc(question)}</p></div>"
         )
 
-    def list_block(title: str, items: list[Any], css: str) -> str:
+    def list_block(title_key: str, items: list[Any], css: str) -> str:
         if not items:
             return ""
         entries = "".join(f"<li>{esc(item)}</li>" for item in items)
         return (
-            f'<section class="card {css}"><h2>{esc(title)}</h2>'
+            f'<section class="card {css}"><h2>{esc(t(title_key))}</h2>'
             f"<ul>{entries}</ul></section>"
         )
 
-    brief_window = window_html(brief) if brief else ""
+    brief_window = window_html(brief, t) if brief else ""
+    footer_meta = t(
+        "footer_meta", version=version, intent=intent, status=status
+    )
 
     return (
         '<main class="card-stack">'
         '<header class="card header">'
         f'<div class="header-top"><span class="badge badge-{esc(response["status"])}">{status}</span>'
         f'<span class="intent">{intent}</span></div>'
-        f'<h1>{esc(location or "Weather advice")}</h1>'
+        f'<h1>{esc(location or t("weather_advice"))}</h1>'
         + (f'<p class="context">{esc(context_line)}</p>' if context_line else "")
         + f'<p class="summary">{summary}</p>'
         f"{clarification_html}"
         "</header>"
         f"{brief_window}"
-        '<section class="card"><h2>Evidence</h2>'
+        f'<section class="card"><h2>{esc(t("evidence"))}</h2>'
         f'<ul class="evidence">{evidence_html}</ul></section>'
-        '<section class="card"><h2>Recommendations</h2>'
+        f'<section class="card"><h2>{esc(t("recommendations"))}</h2>'
         f'<ul class="recommendations">{recommendations_html}</ul></section>'
-        '<section class="card"><h2>Risks</h2>'
+        f'<section class="card"><h2>{esc(t("risks"))}</h2>'
         f'<ul class="risks">{risks_html}</ul></section>'
-        f"{list_block('Missing information', missing, 'missing')}"
-        f"{list_block('Uncertainty', uncertainty, 'uncertainty')}"
-        f'<footer class="card footer"><p>schema_version {version} · '
-        f"intent {intent} · status {status}</p>"
-        "<p>This card is a rendering of a Weather Advisor response and its "
-        "windowed evidence. It contains no weather data of its own, and it is "
-        "not an official warning or an official air-quality bulletin.</p>"
+        f"{list_block('missing_information', missing, 'missing')}"
+        f"{list_block('uncertainty', uncertainty, 'uncertainty')}"
+        f'<footer class="card footer"><p>{esc(footer_meta)}</p>'
+        f'<p>{esc(t("footer_disclaimer"))}</p>'
+        f'<p class="print-hint">{esc(t("print_hint"))}</p>'
         "</footer>"
         "</main>"
     )
 
 
-def source_html(brief: dict[str, Any]) -> str:
+def source_html(brief: dict[str, Any], t: Translator) -> str:
     source = brief.get("source") or {}
     parts = [
         source.get("attribution"),
@@ -465,29 +682,34 @@ def source_html(brief: dict[str, Any]) -> str:
     ]
     license_name = source.get("license")
     if license_name:
-        parts.append(f"Licensed under {license_name}")
+        parts.append(t("licensed_under", license=license_name))
     if source.get("provider"):
-        parts.insert(0, f"Source: {source['provider']}")
+        parts.insert(0, t("source_prefix", provider=source["provider"]))
     text = " · ".join(str(part) for part in parts if part)
     return f'<p class="source">{esc(text)}</p>' if text else ""
 
 
-def render_card(response: dict[str, Any], brief: dict[str, Any] | None) -> str:
+def render_card(
+    response: dict[str, Any],
+    brief: dict[str, Any] | None,
+    lang: str = DEFAULT_LANG,
+) -> str:
     check_response(response)
     if brief is not None and not isinstance(brief.get("coverage"), dict):
         raise DemoError("brief is missing its coverage block")
 
+    t = Translator(lang)
     style = (Path(__file__).resolve().parent / "card.css").read_text(
         encoding="utf-8"
     )
-    source = source_html(brief) if brief else ""
+    source = source_html(brief, t) if brief else ""
     return (
         "<!doctype html>\n"
-        '<html lang="en">\n<head>\n<meta charset="utf-8">\n'
+        f'<html lang="{esc(t("html_lang"))}">\n<head>\n<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
-        "<title>Weather Advisor Card</title>\n"
+        f"<title>{esc(t('title'))}</title>\n"
         f"<style>\n{style}\n</style>\n</head>\n<body>\n"
-        f"{body_html(response, brief)}\n"
+        f"{body_html(response, brief, t)}\n"
         f"{source}\n"
         "</body>\n</html>\n"
     )
@@ -509,6 +731,18 @@ def main(argv: list[str] | None = None) -> int:
         help="optional compact brief from demo/weather_brief.py",
     )
     parser.add_argument(
+        "--lang",
+        choices=LANGS,
+        help="interface language; defaults to the language of --query, "
+        "or English when no Chinese text is found",
+    )
+    parser.add_argument(
+        "--query",
+        default="",
+        help="the user's question; its language selects the interface "
+        "language when --lang is not given",
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         help="write the card here (default: a temporary file)",
@@ -517,6 +751,13 @@ def main(argv: list[str] | None = None) -> int:
         "--open",
         action="store_true",
         help="open the card in the default browser",
+    )
+    parser.add_argument(
+        "--print",
+        dest="print_hint",
+        action="store_true",
+        help="open the card and trigger the browser's print dialog, which is "
+        "how the card is exported as an image or PDF",
     )
     parser.add_argument(
         "--check",
@@ -541,7 +782,14 @@ def main(argv: list[str] | None = None) -> int:
             raise DemoError("a response file is required")
         response = read_json(args.response, "response")
         brief = read_json(args.brief, "brief") if args.brief else None
-        card = render_card(response, brief)
+        # The question decides the language, not the response's prose: the
+        # response is printed verbatim and may be in another language.
+        lang = (
+            normalise_lang(args.lang)
+            if args.lang
+            else detect_lang(args.query)
+        )
+        card = render_card(response, brief, lang)
     except (DemoError, OSError) as exc:
         print(f"Weather card failed: {exc}", file=sys.stderr)
         return 1
@@ -564,8 +812,14 @@ def main(argv: list[str] | None = None) -> int:
         target = Path(handle.name)
         print(target)
 
-    if args.open:
+    if args.open or args.print_hint:
         webbrowser.open(target.resolve().as_uri())
+    if args.print_hint:
+        print(
+            "Opened in the browser. Use the browser's print dialog "
+            "(Ctrl/Cmd+P) and choose 'Save as PDF' to export the card.",
+            file=sys.stderr,
+        )
     return 0
 
 

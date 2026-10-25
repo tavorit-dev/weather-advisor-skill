@@ -448,14 +448,92 @@ ul {
   }
 }
 
+.print-hint {
+  display: none;
+}
+
+/* Print / export ----------------------------------------------------------
+   The card is exported as an image by printing to PDF, so print rules do the
+   real work: force light ink on white, keep the layout to one column, and
+   stop a card from being split across pages. */
+
 @media print {
+  :root {
+    --bg: #ffffff;
+    --card: #ffffff;
+    --ink: #111111;
+    --muted: #555555;
+    --line: #cccccc;
+    --accent: #1f4fa8;
+    --accent-soft: #eef2fa;
+    --ok: #14603c;
+    --ok-soft: #eaf5ee;
+    --warn: #7a4d00;
+    --warn-soft: #fbf0dc;
+    --high: #8c1d17;
+    --high-soft: #fbe9e7;
+    --shadow: none;
+  }
+
+  @page {
+    margin: 12mm;
+  }
+
   body {
     background: #fff;
+    color: #111;
     padding: 0;
+    font-size: 12px;
+  }
+
+  .card-stack {
+    max-width: none;
+    gap: 8px;
   }
 
   .card {
     box-shadow: none;
+    border-color: var(--line);
     break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .header,
+  .window {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* Curves and tiles read better on paper when they keep their shape. */
+  .curve-card,
+  .metric {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .curve {
+    height: 54px;
+  }
+
+  .ref {
+    background: transparent;
+    border: 1px solid var(--line);
+  }
+
+  /* A reader cannot click a hint on paper, so it is dropped. */
+  .print-hint {
+    display: none;
+  }
+
+  a[href]::after {
+    content: "";
+  }
+}
+
+/* The hint only exists on screen. */
+@media screen {
+  .print-hint {
+    display: block;
+    font-style: italic;
   }
 }

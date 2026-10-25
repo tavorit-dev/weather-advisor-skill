@@ -4,7 +4,7 @@ description: >
   Render a Weather Advisor response as a visual HTML card. Use when the user
   asks for a card, a visual summary, a shareable page, or a picture of a
   weather recommendation, or invokes /weather-advisor-card.
-argument-hint: "[response.json] [--brief brief.json] [--open]"
+argument-hint: "[response.json] [--brief brief.json] [--lang zh|en] [--open] [--print]"
 ---
 
 # Weather Advisor Card (Claude Code entry)
@@ -25,6 +25,7 @@ the canonical skill at `../../../SKILL.md`.
 /weather-advisor-card /tmp/response.json --brief /tmp/brief.json --open
 /weather-advisor-card /tmp/response.json
 /weather-advisor-card 上海 通勤 明天 --open
+/weather-advisor-card /tmp/response.json --brief /tmp/brief.json --print
 ```
 
 `$ARGUMENTS` is the text after the command.
@@ -48,6 +49,49 @@ the canonical skill at `../../../SKILL.md`.
 4. **Report the path** and offer to open it. Pass `--open` only when the user
    asked to see it, or offer it once. Without `--output` the card is written to
    a temporary file and its path is printed.
+
+## Language
+
+The card's interface follows the language of the question:
+
+```bash
+# Chinese question -> Chinese interface
+python3 demo/weather_card.py /tmp/response.json --brief /tmp/brief.json \
+  --query "今日天津天气" --output /tmp/card.html
+
+# Explicit override
+python3 demo/weather_card.py /tmp/response.json --lang zh --output /tmp/card.html
+```
+
+- Pass the user's question with `--query`. A question containing Han characters
+  selects Chinese; anything else selects English, which is the default.
+- Use `--lang zh|en` to force a language regardless of the question. Regional
+  tags such as `zh-CN` or `en-US` are accepted.
+- Only the card's own labels are translated. The response's prose — summary,
+  claims, actions, reasons, risks, uncertainty — is printed verbatim in
+  whatever language the response used. Never translate it, and never let the
+  response's language decide the interface: a Chinese question with an English
+  response is a normal case and must keep a Chinese interface.
+- Never pass the response's own text as `--query`; that would make the
+  interface follow the response instead of the user.
+
+## Exporting as an image
+
+Export is a browser print, which keeps the card free of scripts:
+
+```bash
+python3 demo/weather_card.py /tmp/response.json --brief /tmp/brief.json \
+  --print --output /tmp/card.html
+```
+
+- `--print` opens the card and prints the instruction to use the browser's
+  print dialog (Ctrl/Cmd+P) and choose **Save as PDF**. Tell the user the same.
+- The print stylesheet forces light ink on white, keeps cards from splitting
+  across pages, and drops the on-screen print hint, so the exported file is
+  readable rather than a screenshot of the dark theme.
+- Do not add a screenshot library, a headless browser, or an inline script to
+  produce a PNG. The card stays a single script-free HTML file that can be
+  opened offline; a PDF export is the supported path.
 
 ## Producing the inputs
 
@@ -87,9 +131,11 @@ one failed.
 - Do not present the card as an official warning, an official air-quality
   bulletin, or a live measurement. Air-quality figures are CAMS modelled
   forecasts, and the two AQI scales are not comparable.
-- Keep the Open-Meteo attribution when the card is shown or shared.
+- Keep the Open-Meteo attribution when the card is shown or shared. It is a
+  proper name and stays in English in both languages.
 - The card is self-contained and loads nothing from the network: no scripts, no
   external stylesheets, no remote images. Keep it that way, so it can be opened
-  offline and shared as a single file.
+  offline and shared as a single file. Image export works through the browser's
+  print dialog precisely so this stays true.
 - The renderer is `demo/weather_card.py`, part of the replaceable demo layer.
   It does not belong in the canonical `SKILL.md`.

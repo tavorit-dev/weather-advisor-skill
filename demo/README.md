@@ -200,8 +200,12 @@ python demo/weather_card.py response.json --output card.html
 # 叠加窗口证据
 python demo/weather_card.py response.json --brief brief.json --output card.html
 
-# 打开浏览器 / 校验已有卡片
+# 中文界面（由提问语言决定）
+python demo/weather_card.py response.json --query "今日天津天气" --output card.html
+
+# 打开浏览器 / 导出 / 校验已有卡片
 python demo/weather_card.py response.json --brief brief.json --open
+python demo/weather_card.py response.json --brief brief.json --print
 python demo/weather_card.py --check card.html
 ```
 
@@ -223,6 +227,37 @@ python demo/weather_card.py --check card.html
 卡片不引用任何外部资源（无脚本、无外链样式、无远程图片），因此可以离线打开并
 作为单个文件分享；配色跟随查看者的浅色/深色偏好。默认写入临时文件并打印路径，
 `--output` 指定路径，`--open` 用浏览器打开，`--check` 校验已有卡片文件。
+
+### 界面语言
+
+卡片界面跟随**提问**的语言，而不是响应的语言：
+
+```bash
+python demo/weather_card.py response.json --query "今日天津天气" --output card.html
+python demo/weather_card.py response.json --lang zh --output card.html
+```
+
+`--query` 传入用户的问题：含汉字的选中文界面，其余一律英文（默认）。
+`--lang zh|en` 可强制指定，也接受 `zh-CN`、`en-US` 这类地区标签。
+
+只有卡片自己的界面标签会被翻译。响应的正文（摘要、证据、建议、风险、不确定性）
+按原样输出，保持它本来的语言——所以「中文提问 + 英文响应」是完全正常的情况：
+中文界面、英文正文。渲染器**不会**根据响应正文判断语言，否则界面就会跟着响应
+走，而不是跟着用户走。
+
+### 导出为图片
+
+```bash
+python demo/weather_card.py response.json --brief brief.json --print --output card.html
+```
+
+`--print` 打开卡片并提示使用浏览器打印对话框（Ctrl/Cmd+P），选择**另存为
+PDF** 即完成导出。这是受支持的导出路径，因为它让卡片保持无脚本：要生成 PNG
+就得内联 canvas 脚本或引入无头浏览器，两者都会破坏「单文件、可离线打开」这一
+性质。
+
+打印样式强制白底深字（不跟随深色主题）、避免卡片跨页断开、并隐藏屏幕上的打印
+提示，因此导出结果读起来是一份文档，而不是深色主题的截图。
 
 ## 交给 Agent 使用
 
