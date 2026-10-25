@@ -19,7 +19,7 @@
   `references/` 会被 Agent 直接读取，术语保持与 Schema 一致。
 - `.claude/hooks/*.py`、`scripts/*.py`、`demo/*.py`：代码标识符英文，注释与
   docstring 英文。
-- `README.md`：英文，默认版本；`README.zh.md`：简体中文。两版必须同步修改，
+- `README.md`：简体中文，默认版本；`README.en.md`：英文。两版必须同步修改，
   章节结构保持一致。
 - `CLAUDE.md`、`tests/README.md`、`demo/README.md`：中文。
 - `CHANGELOG.md`：沿用现有英文格式（Keep a Changelog）。
@@ -32,7 +32,7 @@
 | 文件 | 只负责 |
 | --- | --- |
 | `SKILL.md` | 入口、工作流、通用强约束、状态选择、文件索引 |
-| `README.md` / `README.zh.md` | 面向用户的项目简介；英文为默认版本，中英文同步 |
+| `README.md` / `README.en.md` | 面向用户的项目简介；中文为默认版本，中英文同步 |
 | `docs/*.md` | 详细使用、架构、示例与测试、目录结构；不重复 `references/` 的规则 |
 | `.claude/skills/weather-advisor/SKILL.md` | Claude Code 入口：调用方式、实时 demo、展示格式；规则委托给根 `SKILL.md` |
 | `.claude/hooks/validate-weather-output.py` | 可选 Stop Hook 与手动 Schema 校验；默认不启用 |
@@ -123,7 +123,7 @@ python demo/weather_demo.py Tokyo --days 2
 
 - 保持 JSON Schema Draft 2020-12。
 - 破坏性变更必须提升 `schema_version` 的 `const` 值，并同步更新全部期望输出、
-  测试用例、`README.md`、`README.zh.md`、相关 `docs/` 文档和 `CHANGELOG.md`。
+  测试用例、`README.md`、`README.en.md`、相关 `docs/` 文档和 `CHANGELOG.md`。
 - 新增可选字段时，确认 `additionalProperties: false` 不会误伤现有示例。
 - 不要放宽「answered 至少一条建议」和「clarification 必须有问题」两个条件。
 
@@ -152,7 +152,7 @@ python demo/weather_demo.py Tokyo --days 2
   `source`、`observed_at`、`valid_from`、`valid_to`。
 - 不得在 `offline` 模式或测试中发网络请求；新增 fixture 放在 `demo/fixtures/`，
   并标注为合成数据。
-- 更换默认提供方时，同步更新 `demo/README.md`、`README.md`、`README.zh.md`、
+- 更换默认提供方时，同步更新 `demo/README.md`、`README.md`、`README.en.md`、
   `docs/getting-started.md`、`docs/claude-code.md` 中的署名、许可和限制说明，
   以及 `CHANGELOG.md`。
 - demo 的命令行接口变化时，同步更新 `.claude/skills/weather-advisor/SKILL.md`
@@ -169,9 +169,13 @@ python demo/weather_demo.py Tokyo --days 2
 ### 文档改动
 
 - 改规则时只改一个文件，其他文件用链接指向它。
-- 改完检查 `README.md` 与 `README.zh.md` 的章节结构、链接和数字是否一致；
+- 改完检查 `README.md` 与 `README.en.md` 的章节结构、链接和数字是否一致；
   目录树以 `docs/repository-layout.md` 为准，示例与测试数量以
   `docs/examples-and-tests.md` 为准。
+- README 头部的 badge 是硬编码计数，不是动态生成的：新增或删除示例、用例，
+  或改动 `schema_version`、许可证时，必须同步修改 `README.md` 与
+  `README.en.md` 中对应的 badge，并确认其链接目标仍然存在。计数以
+  `docs/examples-and-tests.md` 为准，两版 README 的 badge 必须逐字一致。
 - 变更面向用户时更新 `CHANGELOG.md`。
 
 ## 提交前验证

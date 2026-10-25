@@ -1,62 +1,66 @@
-<p align="center">
-  <img src="images/banner.png" alt="天气智言 — evidence-based weather advice" width="100%">
-</p>
-
 <h1 align="center">
   weather-advisor-skill
 </h1>
 
-<p align="center">English | <a href="README.zh.md">简体中文</a></p>
+<p align="center">简体中文 | <a href="README.en.md">English</a></p>
 
-Make Skill-compatible agents give weather advice that starts with evidence and
-ends with machine-checkable output.
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-24292f?style=flat" alt="Apache License 2.0"></a>
+  &nbsp;
+  <a href="schemas/recommendation.schema.json"><img src="https://img.shields.io/badge/schema__version-1.0-24292f?style=flat" alt="Output schema_version 1.0"></a>
+  &nbsp;
+  <a href="examples/"><img src="https://img.shields.io/badge/examples-6-24292f?style=flat" alt="Six example pairs"></a>
+  &nbsp;
+  <a href="tests/cases.jsonl"><img src="https://img.shields.io/badge/acceptance__cases-32-24292f?style=flat" alt="32 acceptance cases"></a>
+  &nbsp;
+  <a href="demo/README.md"><img src="https://img.shields.io/badge/demo-offline__%2F__no__API__key-24292f?style=flat" alt="Demo runs offline and needs no API key"></a>
+</p>
 
-This repository is a skill package made of documentation, a JSON Schema, and a
-test suite. It is **not** a weather API. It does not fetch weather data or ship
-an agent runtime. It governs how an agent uses weather facts supplied by the
-host, and how it returns structured, reviewable advice.
+让兼容 Skill 的 Agent 在天气建议上做到：**先看证据，再给建议，输出可校验**。
 
-## Why it exists
+这是一个纯文档 + JSON Schema + 测试用例的 Skill 仓库，不是天气 API。它不抓取
+天气数据，也不内置 Agent Runtime；它约束 Agent 如何使用宿主提供的天气事实，
+以及如何返回结构化、可被程序检查的建议。
 
-Language models commonly fail at weather advice in predictable ways:
+## 为什么需要它
 
-- inventing temperatures, rainfall amounts, alerts, locations, or data sources;
-- turning "70% chance of rain" into "it will definitely rain";
-- defaulting to the device location when the location is missing;
-- treating "no alert was supplied" as "there is no risk";
-- recommending things unrelated to the evidence, with no traceable reason;
-- returning a different shape every time, so output cannot be validated.
+语言模型在天气场景里常见的失败模式：
 
-The project fixes those behaviors with one entry skill, four reference
-documents, one JSON Schema, six example pairs, and 32 test cases. Success is
-not that a model can talk about weather; it is that different agents follow the
-same analysis process, refuse to fabricate when facts are missing, and produce
-output a program can check.
+- 编造温度、降雨量、预警、地点或数据来源；
+- 把「降雨概率 70%」说成「肯定下雨」；
+- 缺少地点时默认使用系统所在地；
+- 把「没有收到预警」当成「没有风险」；
+- 推荐内容与证据无关，且无法追溯；
+- 每次输出格式不同，无法自动校验。
 
-## Quick start
+本项目用一份入口 Skill、四份参考规范、一份 JSON Schema、六组示例和 32 条
+验收用例，把这些行为固定下来。交付标准不是「模型能说出天气建议」，而是：
+不同 Agent 在相同输入下遵循一致的分析流程，缺少必要事实时不编造，输出可以
+被程序检查。
 
-### 1. Load it as a skill
+## 快速开始
 
-Point your host at the repository root. `SKILL.md` is the entry point.
+### 1. 作为 Skill 加载
+
+把仓库根目录作为 Skill 目录提供给宿主，入口文件是 `SKILL.md`。
 
 ```bash
 cp -r weather-advisor-skill ~/.claude/skills/weather-advisor
 ```
 
-The skill's `name` is `weather-advisor`. If the host requires the directory
-name to match, rename the directory accordingly.
+`SKILL.md` 的 `name` 是 `weather-advisor`。如果宿主要求目录名与 `name`
+一致，请把目录重命名为 `weather-advisor`。
 
-### 2. Supply weather evidence
+### 2. 提供天气证据
 
-The skill never fetches weather. The host supplies the query, context, and
-evidence together:
+Skill 不会自己获取天气。宿主需要把查询、上下文和证据一起提供给 Agent：
 
 ```json
 {
-  "user_query": "Should I bring an umbrella to work tomorrow morning?",
+  "user_query": "明早上班要带伞吗？",
   "intent": "commute_advice",
   "context": {
-    "location": "Shanghai",
+    "location": "上海",
     "timezone": "Asia/Shanghai",
     "start": "2026-10-22T07:00:00+08:00",
     "end": "2026-10-22T09:00:00+08:00"
@@ -76,123 +80,119 @@ evidence together:
 }
 ```
 
-`context` may be empty and `weather_evidence` may be empty; both trigger
-clarification or an insufficient-evidence response instead of letting the model
-fill the gaps.
+`context` 可以为空，`weather_evidence` 可以为空数组；这两种情况会触发追问或
+证据不足，而不是让模型自行补全。
 
-### 3. Get structured output
+### 3. 获取结构化输出
 
-The agent returns a JSON object conforming to
-[`schemas/recommendation.schema.json`](schemas/recommendation.schema.json).
-Every recommendation and risk cites the `evidence_id` values it rests on.
+Agent 返回一个符合
+[`schemas/recommendation.schema.json`](schemas/recommendation.schema.json)
+的 JSON 对象。每条建议和风险都必须引用其依据的 `evidence_id`。
 
 ```json
 {
   "schema_version": "1.0",
   "status": "answered",
   "intent": "commute_advice",
-  "summary": "Rain is fairly likely during tomorrow's morning commute in Shanghai; bring an umbrella.",
+  "summary": "明天早高峰上海存在较明显的降雨可能，建议带伞出门。",
   "evidence": [
-    {
-      "evidence_id": "ev-rain-001",
-      "claim": "The chance of rain from 07:00 to 09:00 is 70%."
-    }
+    { "evidence_id": "ev-rain-001", "claim": "07:00–09:00 的降雨概率为 70%。" }
   ],
   "recommendations": [
     {
-      "action": "Carry an umbrella or rain jacket on your commute.",
-      "reason": "The chance of rain during the commute window is 70%.",
+      "action": "通勤时携带雨伞或雨衣。",
+      "reason": "通勤时段降雨概率为 70%。",
       "evidence_ids": ["ev-rain-001"]
     }
   ],
   "risks": [
     {
-      "description": "Rain may make roads slippery.",
+      "description": "降雨可能导致路面湿滑。",
       "severity": "medium",
       "evidence_ids": ["ev-rain-001"]
     }
   ],
   "missing_information": [],
   "clarification_question": null,
-  "uncertainty": ["70% is a probability, not a guarantee of rain."]
+  "uncertainty": ["70% 是降雨概率，不代表一定下雨。"]
 }
 ```
 
 ## Claude Code
 
-This repository ships a Claude Code project skill at
-`.claude/skills/weather-advisor/SKILL.md`. Open a session at the repository
-root and use the slash command:
+仓库在 `.claude/skills/weather-advisor/SKILL.md` 提供 Claude Code 项目级
+Skill。在仓库根目录打开会话后可直接使用斜杠命令：
 
 ```text
 /weather-advisor Tokyo outdoor running tomorrow
 /weather-advisor --live Osaka travel tomorrow
 ```
 
-Natural-language weather questions also trigger it. Install it for personal use
-with:
+自然语言天气问题也会触发该 Skill。安装到个人目录：
 
 ```bash
 python3 scripts/install_claude_skill.py
 ```
 
-An optional Stop hook can validate a requested JSON response against the
-schema; it is disabled by default. See
-[`docs/claude-code.md`](docs/claude-code.md) for live mode, installation,
-hooks, and verification.
+可选的 Stop Hook 可在用户要求 JSON 时按 Schema 校验响应，默认不启用。实时
+模式、安装方式、Hook 配置与验收步骤见
+[`docs/claude-code.md`](docs/claude-code.md)。
 
-## What is included
+## 包含什么
 
-- a standard `SKILL.md` with metadata;
-- six weather-related intents and clarification rules;
-- evidence constraints and recommendation derivation rules;
-- severe-weather and uncertainty handling;
-- a unified output contract (JSON Schema, Draft 2020-12);
-- six example pairs, 32 test cases, and local validation tooling;
-- a key-free Open-Meteo demo adapter (`demo/`), separate from the skill core.
+- 标准 `SKILL.md` 及元数据；
+- 6 类天气相关意图与追问规则；
+- 天气证据约束与建议推导规则；
+- 严重天气与不确定性处理；
+- 统一输出契约（JSON Schema，Draft 2020-12）；
+- 6 组示例、32 条验收用例和本地校验工具；
+- 免 Key 的 Open-Meteo 演示适配器（`demo/`），独立于 Skill 核心。
 
-It deliberately does **not** include weather fetching in the skill core, a
-standalone agent runtime, accounts/payments, a web service or database, or
-model-specific prompt tuning. See
-[`docs/architecture.md`](docs/architecture.md) for the full scope and design.
+首版**不**包含：Skill 核心内置的天气数据获取、独立 Agent Runtime、账号或支付、
+Web 服务或数据库、针对特定模型的 Prompt 调优。完整范围与设计见
+[`docs/architecture.md`](docs/architecture.md)。
 
-## Documentation
+## 文档
 
-| Document | What it covers |
+| 文档 | 内容 |
 | --- | --- |
-| [`SKILL.md`](SKILL.md) | Entry point, workflow, and hard rules read by the agent |
-| [`docs/getting-started.md`](docs/getting-started.md) | Host integration, full input/output examples, demo, validation |
-| [`docs/claude-code.md`](docs/claude-code.md) | Claude Code entry, `/weather-advisor`, install script, optional hook |
-| [`docs/architecture.md`](docs/architecture.md) | Scope, workflow, status model, intents, design decisions |
-| [`docs/examples-and-tests.md`](docs/examples-and-tests.md) | Example pairs, test coverage, three test layers |
-| [`docs/repository-layout.md`](docs/repository-layout.md) | Annotated repository tree |
-| [`references/`](references/) | Intent catalog, evidence contract, recommendation rules, safety |
-| [`demo/README.md`](demo/README.md) | Demo field mapping, attribution, licensing, provider replacement |
-| [`tests/README.md`](tests/README.md) | Test layers, case format, grading |
-| [`CLAUDE.md`](CLAUDE.md) | Project constraints and conventions for contributors |
-| [`CHANGELOG.md`](CHANGELOG.md) | Release history |
+| [`SKILL.md`](SKILL.md) | Agent 读取的入口、工作流与强约束 |
+| [`docs/getting-started.md`](docs/getting-started.md) | 宿主接入、完整输入输出、演示与校验 |
+| [`docs/claude-code.md`](docs/claude-code.md) | Claude Code 入口、`/weather-advisor`、安装脚本与可选 Hook |
+| [`docs/architecture.md`](docs/architecture.md) | 范围、工作流、状态模型、意图、设计决策 |
+| [`docs/examples-and-tests.md`](docs/examples-and-tests.md) | 示例、测试覆盖与三层测试 |
+| [`docs/repository-layout.md`](docs/repository-layout.md) | 带注释的仓库结构 |
+| [`references/`](references/) | 意图目录、证据契约、建议规则、安全与不确定性 |
+| [`demo/README.md`](demo/README.md) | 演示的字段映射、署名、许可与数据源替换 |
+| [`tests/README.md`](tests/README.md) | 测试分层、用例格式与评分 |
+| [`CLAUDE.md`](CLAUDE.md) | 贡献者的项目约束与约定 |
+| [`CHANGELOG.md`](CHANGELOG.md) | 版本变更记录 |
 
-## Demo
+英文版见 [`README.en.md`](README.en.md)。
 
-`demo/weather_demo.py` turns a city name into a skill-ready input envelope using
-Open-Meteo's free public API. It uses only the Python standard library and
-needs no API key.
+## 演示
+
+`demo/weather_demo.py` 用 Open-Meteo 的免费公共 API，把城市名转换为可直接
+交给 Agent 的输入信封。它只依赖 Python 标准库，不需要 API Key。
 
 ```bash
 python demo/weather_demo.py Tokyo
 python demo/weather_demo.py "New York" --days 2
 python demo/weather_demo.py Tokyo --offline
 
-# Compact, windowed evidence for agent consultations
+# 面向 Agent 咨询的紧凑窗口化证据
 python demo/weather_brief.py Tokyo --date today --window 10:00-16:00 --compact
 ```
 
-Weather data by [Open-Meteo.com](https://open-meteo.com/), licensed under
-CC BY 4.0. The free endpoint is intended for non-commercial use and offers no
-production SLA; keep the attribution when displaying the data. See
-[`demo/README.md`](demo/README.md) for limits and provider replacement.
+`weather_brief.py` 只返回指定时段的小时数据、统计值和证据 ID。紧凑模式通常
+在 1.7–13 KB，而实时全天信封约 50–100 KB。咨询流程见
+[`docs/claude-code.md`](docs/claude-code.md#token-efficient-consultation-pattern)。
 
-## Local validation
+天气数据由 [Open-Meteo.com](https://open-meteo.com/) 提供，许可为 CC BY 4.0。
+免费端点面向非商业使用，不提供生产级 SLA；展示数据时请保留署名。限制说明与
+数据源替换见 [`demo/README.md`](demo/README.md)。
+
+## 本地校验
 
 ```bash
 python3 -m venv .venv
@@ -200,16 +200,17 @@ source .venv/bin/activate
 python -m pip install -r tests/requirements.txt
 
 python tests/test_demo.py
+python tests/test_weather_brief.py
+python tests/test_claude_integration.py
 python tests/run_examples.py
 python tests/validate_cases.py
 ```
 
-All commands must exit 0. See
-[`docs/getting-started.md`](docs/getting-started.md) for the single-file
-validators and the per-case grader.
+五条命令都必须返回 0。单文件校验与逐用例评分见
+[`docs/getting-started.md`](docs/getting-started.md)。
 
-## Version and license
+## 版本与许可证
 
-Current version: `0.1.0`. Output `schema_version`: `1.0`.
+当前版本 `0.1.0`，输出 `schema_version` 为 `1.0`。
 
-[Apache License 2.0](LICENSE).
+[Apache License 2.0](LICENSE)。
