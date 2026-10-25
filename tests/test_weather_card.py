@@ -399,6 +399,82 @@ class CardLanguageTests(unittest.TestCase):
         self.assertIn('<html lang="zh-CN"', card)
         self.assertIn("时段证据", visible_text(card))
 
+    def test_every_interface_enum_is_translated(self) -> None:
+        """Enums the card renders must not leak through as English.
+
+        The intent, the brief's detail mode, and its live/offline mode are all
+        card chrome, so a Chinese card must not show them untranslated.
+        """
+        card = self.render("--query", "今日天津天气")
+        text = visible_text(card)
+        # commute-rain-output.json uses commute_advice; the brief is --every 3
+        # offline, so detail=sparse and mode=offline.
+        self.assertIn("通勤建议", text)
+        self.assertIn("稀疏采样", text)
+        self.assertIn("离线", text)
+        for leaked in (
+            "commute advice",
+            "sparse",
+            "offline",
+            "answered",
+        ):
+            with self.subTest(leaked=leaked):
+                self.assertNotIn(leaked, text)
+
+    def test_every_schema_intent_has_a_translation(self) -> None:
+        """A new intent in the schema must not silently fall back to English."""
+        sys.path.insert(0, str(ROOT / "demo"))
+        import weather_card  # noqa: PLC0415
+
+        schema = json.loads(
+            (ROOT / "schemas" / "recommendation.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        intents = schema["properties"]["intent"]["enum"]
+        statuses = schema["properties"]["status"]["enum"]
+        severities = schema["properties"]["risks"]["items"]["properties"][
+            "severity"
+        ]["enum"]
+        for lang, table in weather_card.STRINGS.items():
+            for name, values in (
+                ("intent", intents),
+                ("status", statuses),
+                ("severity", severities),
+            ):
+                for value in values:
+                    with self.subTest(lang=lang, field=name, value=value):
+                        self.assertIn(value, table)
+
+    def test_unknown_enum_value_falls_back_rather_than_blanking(self) -> None:
+        sys.path.insert(0, str(ROOT / "demo"))
+        import weather_card  # noqa: PLC0415
+
+        t = weather_card.Translator("zh")
+        # A value the card does not know is shown as-is, not dropped.
+        self.assertEqual(
+            weather_card.label_for(t, "some_new_intent"), "some new intent"
+        )
+        self.assertEqual(
+            weather_card.label_for(t, "bogus", namespace="detail"), "bogus"
+        )
+        self.assertEqual(weather_card.label_for(t, "", fallback="—"), "—")
+
+    def test_brief_detail_and_mode_enums_are_namespaced(self) -> None:
+        """detail and mode are short words that could collide with other keys."""
+        sys.path.insert(0, str(ROOT / "demo"))
+        import weather_card  # noqa: PLC0415
+
+        t = weather_card.Translator("zh")
+        self.assertEqual(
+            weather_card.label_for(t, "summary", namespace="detail"), "仅统计值"
+        )
+        self.assertEqual(
+            weather_card.label_for(t, "offline", namespace="mode"), "离线"
+        )
+        # The same words without a namespace are not the brief's enums.
+        self.assertEqual(weather_card.label_for(t, "summary"), "summary")
+
     def test_response_prose_is_never_translated(self) -> None:
         """The card labels its own chrome; it does not touch the response."""
         response = json.loads(
