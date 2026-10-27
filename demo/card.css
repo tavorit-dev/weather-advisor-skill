@@ -1,9 +1,17 @@
+/* Weather Advisor card stylesheet.
+   Mobile-first: the card is designed at phone width and widens from there.
+   Palette is a desaturated mineral neutral with a single accent; the status
+   colours appear only on badges and severity marks, so colour always means
+   state rather than decoration. */
+
 :root {
   --bg: #eef1f6;
-  --card: #ffffff;
+  --sheet: #ffffff;
+  --sunken: #f5f7fa;
   --ink: #1b1f27;
   --muted: #5d6675;
   --line: #e2e6ee;
+  --line-strong: #d2d8e3;
   --accent: #2f6bd8;
   --accent-soft: #eaf1fd;
   --ok: #1d7a4d;
@@ -12,17 +20,21 @@
   --warn-soft: #fdf1dd;
   --high: #b3261e;
   --high-soft: #fdeceb;
-  --radius: 14px;
+  --radius: 18px;
+  --radius-inner: 12px;
+  --pad: 18px;
   --shadow: 0 1px 2px rgba(20, 26, 38, 0.06), 0 8px 24px rgba(20, 26, 38, 0.06);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #14171c;
-    --card: #1c2027;
+    --sheet: #1c2027;
+    --sunken: #22272f;
     --ink: #e9edf3;
     --muted: #9aa4b3;
     --line: #2b3038;
+    --line-strong: #39404a;
     --accent: #7aa7f5;
     --accent-soft: #212a3a;
     --ok: #6dd3a1;
@@ -41,35 +53,44 @@
 
 body {
   margin: 0;
-  padding: 32px 16px 48px;
+  padding: 12px 12px 32px;
   background: var(--bg);
   color: var(--ink);
-  font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
     "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, Helvetica,
     Arial, sans-serif;
+  -webkit-text-size-adjust: 100%;
 }
 
-.card-stack {
+/* One sheet rather than a dozen floating cards: at phone width a stack of
+   separately framed boxes reads as clutter, and every gap and every border
+   costs vertical space that the advice needs. Sections are separated by
+   rhythm and hairlines inside the single sheet instead. */
+.sheet {
   max-width: 720px;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.card {
-  background: var(--card);
+  background: var(--sheet);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 20px 22px;
+  overflow: hidden;
+}
+
+/* A section of the sheet. The first one has no rule above it. */
+.section {
+  padding: var(--pad);
+  border-top: 1px solid var(--line);
+}
+
+.section:first-child {
+  border-top: none;
 }
 
 h1 {
-  font-size: 24px;
-  line-height: 1.25;
-  margin: 10px 0 2px;
-  letter-spacing: -0.01em;
+  font-size: 27px;
+  line-height: 1.2;
+  margin: 8px 0 0;
+  letter-spacing: -0.02em;
 }
 
 h2 {
@@ -77,8 +98,8 @@ h2 {
   text-transform: uppercase;
   letter-spacing: 0.09em;
   color: var(--muted);
-  margin: 0 0 14px;
-  font-weight: 600;
+  margin: 0 0 12px;
+  font-weight: 700;
 }
 
 p {
@@ -97,19 +118,23 @@ ul {
 
 /* Header ------------------------------------------------------------------ */
 
+.header {
+  background: var(--sunken);
+}
+
 .header-top {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .badge {
   display: inline-block;
-  padding: 3px 10px;
+  padding: 4px 11px;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   background: var(--accent-soft);
   color: var(--accent);
 }
@@ -130,31 +155,40 @@ ul {
 }
 
 .intent {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
 }
 
 .context {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
-  margin-bottom: 12px;
+  margin-top: 4px;
 }
 
 .summary {
   font-size: 16px;
   line-height: 1.65;
+  margin-top: 14px;
+}
+
+/* A one-line explanation of what a section is for. Used where a bare list
+   would leave the reader guessing why the block is on the card. */
+.section-hint {
+  font-size: 14px;
+  color: var(--muted);
+  margin: -6px 0 14px;
 }
 
 /* Notices ----------------------------------------------------------------- */
 
 .notice {
   margin-top: 14px;
-  padding: 12px 14px;
-  border-radius: 10px;
+  padding: 13px 15px;
+  border-radius: var(--radius-inner);
   border-left: 3px solid var(--accent);
   background: var(--accent-soft);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .notice strong {
@@ -178,6 +212,36 @@ ul {
   border-left: 3px solid var(--muted);
 }
 
+/* One gap per line: a reader is meant to check each off, and a wrapped
+   comma-separated run of five hides which ones are listed. */
+.gap-list {
+  margin: 8px 0 0;
+  font-size: 14px;
+}
+
+.gap-list li {
+  padding: 3px 0 3px 16px;
+  position: relative;
+}
+
+.gap-list li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 12px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.gap-caveat {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+}
+
 .notice-air {
   border-left-color: var(--accent);
 }
@@ -192,63 +256,109 @@ ul {
 }
 
 .chip {
+  flex: none;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: 999px;
-  padding: 2px 10px;
+  padding: 3px 10px;
 }
 
 .window-meta {
   font-size: 13px;
   color: var(--muted);
-  margin: -6px 0 16px;
+  margin: 4px 0 14px;
 }
 
+/* Summary figures. Auto-fit rather than a fixed count: the brief decides how
+   many metrics exist, and a missing one must not leave a hole in the grid. */
 .metrics {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
+/* A grid row is as tall as its tallest tile, and the precipitation tile's
+   "total / peak" value wraps to two lines where the others do not. Stretching
+   every tile to match leaves the short ones as mostly empty boxes, so the
+   value is allowed to shrink a little instead and the row stays even. */
 .metric {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 10px 12px;
+  background: var(--sunken);
+  border-radius: var(--radius-inner);
+  padding: 11px 12px;
+  min-width: 0;
+}
+
+.metric-value {
+  overflow-wrap: anywhere;
 }
 
 .metric-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  font-size: 12px;
   color: var(--muted);
 }
 
 .metric-value {
-  font-size: 19px;
-  font-weight: 600;
+  font-size: clamp(14px, 4.6vw, 20px);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  margin-top: 2px;
+  letter-spacing: -0.01em;
+  margin-top: 3px;
+  line-height: 1.25;
+}
+
+/* A total/peak value is a phrase where every other value is a number, so it
+   is the only one that wraps. Giving it the full width of the grid as its own
+   row keeps the numbers in even rows instead of one tile stretching its
+   neighbours. */
+.metric-wide {
+  grid-column: 1 / -1;
+}
+
+.metric-wide .metric-value {
+  font-size: 18px;
 }
 
 .metric-unit {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 
+/* Curves ------------------------------------------------------------------
+   Eight stacked charts made the window section two thirds of the document and
+   pushed the risks and the caveats far below the fold. On a phone they are a
+   horizontal gallery instead: one chart at a time at a readable size, swiped
+   with the native scroll. No script is involved, and `scroll-snap` keeps the
+   charts aligned to the edge. */
+
 .curves {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  display: flex;
   gap: 10px;
-  margin-top: 12px;
+  margin-top: 14px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  /* The gallery bleeds to the sheet edges so a chart is visibly cut off,
+     which is what tells the reader there is more to swipe. */
+  margin-inline: calc(var(--pad) * -1);
+  padding-inline: var(--pad);
+  padding-bottom: 2px;
+}
+
+.curves::-webkit-scrollbar {
+  display: none;
 }
 
 .curve-card {
+  flex: 0 0 auto;
+  width: min(78%, 300px);
   margin: 0;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 10px 12px 8px;
+  scroll-snap-align: start;
+  background: var(--sunken);
+  border-radius: var(--radius-inner);
+  padding: 12px 14px 10px;
 }
 
 .curve-card figcaption {
@@ -256,13 +366,13 @@ ul {
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
 }
 
 .curve-card figcaption strong {
   color: var(--ink);
-  font-size: 14px;
+  font-size: 16px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -274,8 +384,8 @@ ul {
 .curve {
   display: block;
   width: 100%;
-  height: 62px;
-  margin-top: 6px;
+  height: 76px;
+  margin-top: 8px;
 }
 
 .curve-area {
@@ -299,17 +409,24 @@ ul {
 .curve-range {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
 /* Evidence, recommendations, risks ---------------------------------------- */
 
+/* The advice is what the reader came for, so its section carries an accent
+   edge. The edge is the only emphasis: it orders the section without ranking
+   the recommendations themselves. */
+.recommendations-section {
+  border-left: 3px solid var(--accent);
+}
+
 .evidence-item,
 .rec,
 .risk {
-  padding: 10px 0;
+  padding: 12px 0;
   border-top: 1px solid var(--line);
 }
 
@@ -327,28 +444,29 @@ ul {
 
 .rec-action {
   font-weight: 600;
+  font-size: 16px;
 }
 
 .rec-reason {
   color: var(--muted);
-  font-size: 14px;
-  margin-top: 2px;
+  font-size: 15px;
+  margin-top: 3px;
 }
 
 .risk {
   display: flex;
-  gap: 10px;
+  gap: 11px;
   align-items: flex-start;
 }
 
 .severity {
   flex: none;
-  margin-top: 2px;
+  margin-top: 3px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  padding: 2px 8px;
+  padding: 3px 9px;
   border-radius: 999px;
   background: var(--accent-soft);
   color: var(--accent);
@@ -371,12 +489,12 @@ ul {
 
 .missing ul,
 .uncertainty ul {
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .missing li,
 .uncertainty li {
-  padding: 6px 0 6px 16px;
+  padding: 8px 0 8px 16px;
   position: relative;
   border-top: 1px solid var(--line);
 }
@@ -391,7 +509,7 @@ ul {
   content: "";
   position: absolute;
   left: 2px;
-  top: 14px;
+  top: 17px;
   width: 5px;
   height: 5px;
   border-radius: 50%;
@@ -400,10 +518,14 @@ ul {
 
 /* References and footer --------------------------------------------------- */
 
+/* Evidence ID chips. They used to be printed under every recommendation and
+   inside every chart, which put 59 of them on one card and drowned the data
+   they were meant to support. They are now shown where a reader goes to audit
+   a citation: in the collapsed evidence section. */
 .refs {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 5px;
   margin-top: 8px;
 }
 
@@ -414,16 +536,79 @@ ul {
   color: var(--muted);
   background: var(--accent-soft);
   border-radius: 6px;
-  padding: 2px 7px;
+  padding: 3px 7px;
   word-break: break-all;
 }
 
+/* Collapsed blocks. <details> is markup rather than script, so the card keeps
+   its zero-script property and a browser without <details> shows the content
+   open instead of hiding it. */
+
+.collapsible > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  list-style: none;
+  /* The whole summary row is the tap target, and a thumb needs 44px. The
+     negative margin keeps the padding from adding visual height to the row. */
+  min-height: 44px;
+  margin: -12px 0;
+  padding: 12px 0;
+}
+
+.collapsible > summary::-webkit-details-marker {
+  display: none;
+}
+
+.collapsible > summary h2 {
+  margin: 0;
+}
+
+.toggle {
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.toggle::after {
+  content: attr(data-show);
+}
+
+details[open] > summary .toggle::after {
+  content: attr(data-hide);
+}
+
+/* The marker is a glyph rather than an image, so the card stays free of
+   external resources. */
+.toggle::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 4px;
+}
+
+details[open] > summary .toggle::before {
+  content: "▾";
+}
+
+/* Body content of a collapsed block, so it does not sit flush against the
+   summary that opens it. */
+.collapsible[open] > .section-hint,
+.collapsible[open] > .evidence,
+.collapsible[open] > ul {
+  margin-top: 12px;
+}
+
 .footer {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   display: flex;
   flex-direction: column;
   gap: 8px;
+  background: var(--sunken);
 }
 
 .source {
@@ -434,17 +619,34 @@ ul {
   color: var(--muted);
 }
 
-@media (max-width: 520px) {
-  body {
-    padding: 20px 12px 36px;
+/* Wider than a phone: the chart gallery can afford to show more than one
+   chart, and the sheet gets roomier padding. */
+@media (min-width: 640px) {
+  :root {
+    --pad: 24px;
   }
 
-  .card {
-    padding: 16px;
+  body {
+    padding: 28px 16px 48px;
+  }
+
+  .curve-card {
+    width: 260px;
+  }
+}
+
+/* Narrow phones: tighten the outer gutter so the sheet keeps its width. */
+@media (max-width: 380px) {
+  body {
+    padding: 8px 8px 24px;
+  }
+
+  :root {
+    --pad: 15px;
   }
 
   h1 {
-    font-size: 21px;
+    font-size: 24px;
   }
 }
 
@@ -454,16 +656,18 @@ ul {
 
 /* Print / export ----------------------------------------------------------
    The card is exported as an image by printing to PDF, so print rules do the
-   real work: force light ink on white, keep the layout to one column, and
-   stop a card from being split across pages. */
+   real work: force light ink on white, drop the horizontal gallery back to a
+   single readable column, and stop a section from being split across pages. */
 
 @media print {
   :root {
     --bg: #ffffff;
-    --card: #ffffff;
+    --sheet: #ffffff;
+    --sunken: #f7f8fa;
     --ink: #111111;
     --muted: #555555;
     --line: #cccccc;
+    --line-strong: #bbbbbb;
     --accent: #1f4fa8;
     --accent-soft: #eef2fa;
     --ok: #14603c;
@@ -473,6 +677,7 @@ ul {
     --high: #8c1d17;
     --high-soft: #fbe9e7;
     --shadow: none;
+    --pad: 0;
   }
 
   @page {
@@ -486,14 +691,14 @@ ul {
     font-size: 12px;
   }
 
-  .card-stack {
+  .sheet {
     max-width: none;
-    gap: 8px;
+    border: none;
+    border-radius: 0;
   }
 
-  .card {
-    box-shadow: none;
-    border-color: var(--line);
+  .section {
+    padding: 10px 0;
     break-inside: avoid;
     page-break-inside: avoid;
   }
@@ -504,11 +709,27 @@ ul {
     page-break-after: avoid;
   }
 
-  /* Curves and tiles read better on paper when they keep their shape. */
+  /* Charts and tiles read better on paper when they keep their shape. */
   .curve-card,
   .metric {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  /* A horizontal gallery cannot be swiped on paper, and a chart cut off at
+     the page edge is worse than a small one: print lays the charts out as a
+     grid instead, so all of them are on the sheet. */
+  .curves {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    overflow: visible;
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+
+  .curve-card {
+    width: auto;
   }
 
   .curve {
@@ -518,6 +739,22 @@ ul {
   .ref {
     background: transparent;
     border: 1px solid var(--line);
+  }
+
+  /* A collapsed <details> would silently drop its content from an exported
+     PDF, so print always shows it. Setting `display` on the children is NOT
+     enough: a closed <details> hides its entire content slot, so the slot
+     itself has to be revealed, and `::details-content` is the only thing that
+     does it. Verified by printing through headless Chrome: without this rule
+     the content is absent from the PDF. The toggle label is a screen
+     affordance that means nothing on paper. */
+  details::details-content {
+    content-visibility: visible;
+    display: block;
+  }
+
+  .toggle {
+    display: none;
   }
 
   /* A reader cannot click a hint on paper, so it is dropped. */

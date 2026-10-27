@@ -44,7 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   verbatim rendering of the response, curves and their evidence IDs,
   attribution and gap disclosure, the no-brief and summary-only paths, HTML
   escaping, rejection of invalid input, language selection in both directions,
-  that every key exists in every language, and the print-export rules.
+  that every key exists in every language, the reading order, the collapsed
+  evidence list and its print behaviour, and the print-export rules.
 - English README as the default (`README.md`), with the Chinese version in
   `README.zh.md`; both are maintained as a synchronized pair.
 - Detailed guides under `docs/`: getting started and host integration,
@@ -135,6 +136,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `tests/test_weather_card.py` joins the five required checks, in `CLAUDE.md`,
   `README.md`, `README.en.md`, `tests/README.md`, and
   `docs/getting-started.md`.
+- Reordered the card so it reads by what the reader needs first: the summary,
+  then the recommendations, then the window evidence behind them, the risks, and
+  finally the evidence list. Previously the window tiles and curves came first
+  and the recommendations sat below the evidence. The recommendations card
+  carries an accent edge, and only when the response has recommendations — an
+  empty list keeps a plain card rather than highlighting a placeholder.
+- The card's evidence list is now collapsed behind a `<details>` element headed
+  with its entry count (for example "Evidence (2)"), since it is the longest
+  block on the card and the least useful to a reader who is not auditing a
+  citation. `<details>` is markup rather than script, so the card keeps its
+  zero-script property, and a browser without it shows the list open. Expanding
+  it explains what an `evidence_id` is and why the card shows them. The print
+  rules reveal the list unconditionally: a paper reader cannot click, so an
+  export would otherwise silently omit the evidence.
+- The card's `demo_gaps` notice now lists each uncovered metric on its own line
+  instead of a comma-separated run, and states that the demo has no data source
+  for them, so "not shown" is not read as "not happening". The "absence of an
+  alert is not evidence that no alert is in effect" caveat is now a separate
+  sentence below the list rather than the tail of one long line.
+- The card's window-evidence and recommendations sections gained a one-line
+  explanation of what they contain, and the recommendations section is
+  introduced as "what to do, and why".
+- Redesigned the card for phone-sized screens. The layout was a stack of a
+  dozen separately framed cards, which at 390px read as box-in-box clutter and
+  spent height on padding and gaps the advice needed. It is now one sheet with
+  hairline-separated sections, and body text is 16px with the summary figures
+  set in full-width tiles. The same card measured 3934px tall before and 2443px
+  after.
+- The card's hourly curves are now a horizontal snap-scrolling gallery instead
+  of a vertical stack. Eight stacked charts made the window section two thirds
+  of the document (2606px of 3934px) and pushed the risks and the caveats far
+  below the fold. On paper, where a gallery cannot be swiped and a chart cut off
+  at the page edge is worse than a small one, the print rules lay the charts out
+  as a two-column grid so all of them are on the sheet. The gallery uses
+  `scroll-snap` and native overflow, so the card stays script-free.
+- The card no longer prints an `evidence_id` under every recommendation, risk,
+  and chart. Doing so put 59 chips on one card and drowned the data they were
+  meant to support; the IDs are shown once, in the evidence section, which is
+  where a reader goes to audit a citation, and the section explains why they are
+  there. A test asserts that every ID the card prints resolves to an entry in
+  the response's evidence list, so a dangling reference fails the suite.
+- A `total`/`peak` summary tile now spans the full width of the metrics grid. It
+  is the only value that is a phrase rather than a number, so it was the only
+  one that wrapped, and a grid row is as tall as its tallest tile — leaving the
+  numbers beside it stretched into half-empty boxes. Tiles in a row are now
+  equal at every tested width from 320px to 640px.
+- The collapsed evidence list's tap target is 44px tall. At 24px it was below
+  the minimum comfortable touch size.
 
 ### Fixed
 
