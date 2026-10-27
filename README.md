@@ -129,7 +129,7 @@ Skill。在仓库根目录打开会话后可直接使用斜杠命令：
 ```
 
 `/weather-advisor-card` 把结构化响应渲染成一张自包含的 HTML 卡片，可叠加
-窗口化证据，显示逐小时曲线：
+窗口化证据显示逐小时曲线，也可附带本轮真实的 token 用量与耗时：
 
 ```text
 /weather-advisor-card /tmp/response.json --brief /tmp/brief.json --open
@@ -216,12 +216,13 @@ python -m pip install -r tests/requirements.txt
 python tests/test_demo.py
 python tests/test_weather_brief.py
 python tests/test_weather_card.py
+python tests/test_session_stats.py
 python tests/test_claude_integration.py
 python tests/run_examples.py
 python tests/validate_cases.py
 ```
 
-六条命令都必须返回 0。单文件校验与逐用例评分见
+七条命令都必须返回 0。单文件校验与逐用例评分见
 [`docs/getting-started.md`](docs/getting-started.md)。
 
 ## 版本与许可证

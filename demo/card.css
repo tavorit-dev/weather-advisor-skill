@@ -600,6 +600,57 @@ details[open] > summary .toggle::before {
   background: var(--sunken);
 }
 
+/* Measured session usage, the card's last content block. It is a grid rather
+   than a sentence so the numbers line up and can be scanned. */
+.stats-block {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.stats-block h2 {
+  margin-bottom: 10px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.stats-grid .stat {
+  background: var(--sheet);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-inner);
+  padding: 8px 10px;
+  min-width: 0;
+}
+
+.stats-grid dt {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.stats-grid dd {
+  margin: 3px 0 0;
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.stats-note {
+  margin-top: 10px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
 .source {
   max-width: 720px;
   margin: 12px auto 0;
@@ -697,6 +748,11 @@ details[open] > summary .toggle::before {
   /* Charts and tiles read better on paper when they keep their shape. */
   .curve-card,
   .metric {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .stats-block {
     break-inside: avoid;
     page-break-inside: avoid;
   }

@@ -49,6 +49,7 @@
 | `.claude/skills/weather-advisor/SKILL.md` | Claude Code 入口：调用方式、实时 demo、展示格式；规则委托给根 `SKILL.md` |
 | `.claude/skills/weather-advisor-card/SKILL.md` | `/weather-advisor-card` 入口：渲染流程、卡片边界；规则委托给根 `SKILL.md` |
 | `.claude/hooks/validate-weather-output.py` | 可选 Stop Hook 与手动 Schema 校验；默认不启用 |
+| `scripts/claude_session_stats.py` | 从 Claude Code 会话 transcript 统计 token 用量与耗时，供卡片 `--stats` 使用 |
 | `scripts/install_claude_skill.py` | 把 Skill 安装到个人 `~/.claude/skills` |
 | `references/intent-catalog.md` | 意图分类、必要上下文、追问时机 |
 | `references/evidence-contract.md` | 输入结构、证据字段、有效期与时效、缺失/冲突处理 |
@@ -57,7 +58,7 @@
 | `schemas/recommendation.schema.json` | 输出字段、类型、必填项、枚举、条件约束 |
 | `examples/` | 可阅读的输入/输出对 |
 | `demo/` | Open-Meteo 演示适配器、离线 fixture、紧凑证据摘要与卡片渲染；不属于 Skill 核心 |
-| `demo/weather_card.py` / `demo/card.css` | 响应（+ brief）到自包含 HTML 卡片的渲染与样式；不新增天气事实 |
+| `demo/weather_card.py` / `demo/card.css` | 响应（+ brief + 可选 stats）到自包含 HTML 卡片的渲染与样式；不新增天气事实 |
 | `tests/` | 验收用例与校验工具 |
 
 `SKILL.md` 的 `name`/`description` 是调用元数据，不属于响应 JSON。不要把
@@ -97,6 +98,7 @@ python -m pip install -r tests/requirements.txt
 python tests/test_demo.py
 python tests/test_weather_brief.py
 python tests/test_weather_card.py
+python tests/test_session_stats.py
 python tests/test_claude_integration.py
 python tests/run_examples.py
 python tests/validate_cases.py
@@ -176,14 +178,18 @@ python demo/weather_demo.py Tokyo --days 2
   `evidence_id`、`source`、`retrieved_at`、署名和许可，不生成建议，不引入新
   数据源；字段变化时同步更新 `demo/README.md` 与
   `docs/claude-code.md`。
-- `demo/weather_card.py` 只是渲染层：只读取已定义的响应字段与 brief 字段，
-  不新增天气数值、阈值或建议，不改写响应；样式在 `demo/card.css`，渲染时内联
-  进卡片，保持单文件、离线可打开、不引用任何外部资源。卡片必须保留 Open-Meteo
-  署名与许可、空气质量为 CAMS 预报的说明、两套 AQI 不可比较的提示，以及 brief
-  的 `demo_gaps`。响应缺少必填字段、`status`/`intent` 非枚举值、或
-  `needs_clarification` 无追问时，脚本应报错退出而不是渲染。字段或 CLI 变化时
-  同步更新 `demo/README.md`、`docs/claude-code.md` 与
-  `.claude/skills/weather-advisor-card/SKILL.md`。
+- `demo/weather_card.py` 只是渲染层：只读取已定义的响应字段、brief 字段，以及
+  `--stats` 传入的统计字段，不新增天气数值、阈值或建议，不改写响应；样式在
+  `demo/card.css`，渲染时内联进卡片，保持单文件、离线可打开、不引用任何外部
+  资源。卡片必须保留 Open-Meteo 署名与许可、空气质量为 CAMS 预报的说明、两套
+  AQI 不可比较的提示，以及 brief 的 `demo_gaps`。响应缺少必填字段、
+  `status`/`intent` 非枚举值、或 `needs_clarification` 无追问时，脚本应报错
+  退出而不是渲染。字段或 CLI 变化时同步更新 `demo/README.md`、
+  `docs/claude-code.md` 与 `.claude/skills/weather-advisor-card/SKILL.md`。
+- `--stats` 只接受 `scripts/claude_session_stats.py` 产出的 JSON（`source` 为
+  `claude-code-transcript`）：统计截至卡片生成前，生成本卡片的请求不计入；
+  取不到时省略统计区块，不得显示 0 或写估算值。该 helper 是 Claude Code
+  专用、仅用标准库、不联网，字段或 CLI 变化时同步更新上述文档。
 - `--summary-only` 只能省略 `hours`，不得省略 `summary`、`source`、`demo_gaps`
   或证据 ID；`--compact` 只改变 JSON 序列化，不改变字段；`--every N` 只能
   稀疏化 `hours`，`summary` 必须继续覆盖整个窗口。
@@ -215,12 +221,13 @@ python demo/weather_demo.py Tokyo --days 2
 python tests/test_demo.py
 python tests/test_weather_brief.py
 python tests/test_weather_card.py
+python tests/test_session_stats.py
 python tests/test_claude_integration.py
 python tests/run_examples.py
 python tests/validate_cases.py
 ```
 
-要求六条命令都返回 0，并且：
+要求所有命令都返回 0，并且：
 
 - 没有悬空 `evidence_id`；
 - 示例数量、用例数量与 `docs/examples-and-tests.md` 描述一致；
@@ -262,6 +269,7 @@ python tests/validate_cases.py
 - 不要让 `demo/weather_brief.py` 输出完整证据、生成建议或替代官方预警；它只
   做窗口化摘要，完整证据仍以 `weather_demo.py` 为准。
 - 不要让 `demo/weather_card.py` 生成或改写建议、补全缺失字段，或把卡片做成
-  官方预警、官方 AQI 公报或实测数据的样式。卡片只渲染已有响应与 brief。
+  官方预警、官方 AQI 公报或实测数据的样式。卡片只渲染已有响应与 brief，
+  token/耗时只能来自 `scripts/claude_session_stats.py`，不得手填或估算。
 - 不要让卡片引用外部资源（脚本、外链样式、远程图片、CDN）；它必须保持单文件、
   离线可打开。

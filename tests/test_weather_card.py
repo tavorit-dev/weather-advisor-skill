@@ -759,5 +759,186 @@ class CardPrintExportTests(unittest.TestCase):
             self.assertIn("print dialog", result.stderr)
 
 
+STATS = {
+    "source": "claude-code-transcript",
+    "input_tokens": 12345,
+    "output_tokens": 678,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 0,
+    "elapsed_seconds": 83,
+    "requests": 3,
+    "started_at": "2026-10-27T10:00:00Z",
+    "generated_at": "2026-10-27T10:01:23Z",
+    "model": "claude-sonnet-5-5",
+}
+
+
+class GenerationStatsTests(unittest.TestCase):
+    """Optional session stats, supplied by scripts/claude_session_stats.py."""
+
+    def render(
+        self, stats: object | None = None, *extra: object
+    ) -> tuple[subprocess.CompletedProcess[str], str]:
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            args: list[object] = [CARD, EXAMPLES / "commute-rain-output.json"]
+            if stats is not None:
+                stats_path = directory / "stats.json"
+                stats_path.write_text(json.dumps(stats), encoding="utf-8")
+                args += ["--stats", stats_path]
+            out = directory / "card.html"
+            args += ["--output", out, *extra]
+            result = run(*args)
+            card = out.read_text(encoding="utf-8") if out.exists() else ""
+        return result, card
+
+    def test_stats_block_is_omitted_without_stats(self) -> None:
+        result, card = self.render()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("Generation stats", visible_text(card))
+        self.assertNotIn('class="stats-block"', card)
+
+    def test_stats_are_rendered_at_the_end(self) -> None:
+        result, card = self.render(STATS)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        body = card.split("<body>", 1)[1]
+        stats_at = body.index('class="stats-block"')
+        self.assertGreater(stats_at, body.index('class="section footer"'))
+        self.assertGreater(stats_at, body.index("This card is a rendering"))
+
+    def test_stats_show_tokens_elapsed_and_model(self) -> None:
+        result, card = self.render(STATS)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        text = visible_text(card)
+        self.assertIn("Generation stats", text)
+        self.assertIn("Input tokens", text)
+        self.assertIn("Output tokens", text)
+        self.assertIn("Total tokens", text)
+        self.assertIn("12,345", text)
+        self.assertIn("678", text)
+        self.assertIn("13,023", text)
+        self.assertIn("Elapsed", text)
+        self.assertIn("1m 23s", text)
+        self.assertIn("Model", text)
+        self.assertIn("claude-sonnet-5-5", text)
+
+    def test_stats_are_translated_with_the_interface(self) -> None:
+        result, card = self.render(STATS, "--query", "今日天津天气")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        text = visible_text(card)
+        for label in ("生成统计", "输入 tokens", "输出 tokens", "合计 tokens", "耗时", "模型"):
+            self.assertIn(label, text)
+        self.assertIn("1 分 23 秒", text)
+        self.assertIn("12,345", text)
+
+    def test_stats_without_model_omit_the_model_row(self) -> None:
+        stats = dict(STATS)
+        del stats["model"]
+        result, card = self.render(stats)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        text = visible_text(card)
+        self.assertIn("Generation stats", text)
+        self.assertNotIn("Model", text)
+
+    def test_stats_note_states_where_the_numbers_come_from(self) -> None:
+        result, card = self.render(STATS)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        text = visible_text(card)
+        self.assertIn("session transcript", text)
+        self.assertIn("not counted yet", text)
+        self.assertIn("not an estimate", text)
+
+        result, card = self.render(STATS, "--query", "今日天津天气")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("会话记录", visible_text(card))
+        self.assertIn("尚未计入", visible_text(card))
+
+    def test_zero_tokens_survive_rather_than_being_hidden(self) -> None:
+        """Zero is a measurement; a missing block would be a different thing."""
+        stats = dict(
+            STATS, input_tokens=0, output_tokens=0, elapsed_seconds=0
+        )
+        result, card = self.render(stats)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        text = visible_text(card)
+        self.assertIn("Generation stats", text)
+        self.assertIn("0s", text)
+        self.assertIn("Total tokens", text)
+
+    def test_elapsed_over_an_hour_uses_hours(self) -> None:
+        stats = dict(STATS, elapsed_seconds=3725)
+        result, card = self.render(stats)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("1h 2m", visible_text(card))
+
+        result, card = self.render(stats, "--query", "今日天津天气")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("1 小时 2 分", visible_text(card))
+
+    def test_stats_values_are_escaped(self) -> None:
+        stats = dict(STATS, model='<script>alert("x")</script>')
+        result, card = self.render(stats)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("<script", card)
+        self.assertIn("&lt;script&gt;", card)
+
+    def test_stats_do_not_add_scripts(self) -> None:
+        result, card = self.render(STATS)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("<script", card)
+        self.assertNotIn("onclick", card)
+
+    def test_invalid_stats_are_rejected(self) -> None:
+        cases = (
+            (dict(STATS, input_tokens=-1), "non-negative"),
+            (dict(STATS, elapsed_seconds="83"), "non-negative"),
+            (dict(STATS, source="handwritten"), "stats source"),
+            (dict(STATS, model=""), "model"),
+        )
+        for stats, message in cases:
+            with self.subTest(message=message, stats=stats.get("source")):
+                result, card = self.render(stats)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("stats", result.stderr)
+                self.assertIn(message, result.stderr)
+                self.assertEqual(card, "")
+
+    def test_non_finite_stats_are_rejected(self) -> None:
+        """NaN is valid JSON for Python but not a number the card can print."""
+        for value in (float("nan"), float("inf")):
+            with self.subTest(value=value):
+                result, card = self.render(dict(STATS, elapsed_seconds=value))
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("finite", result.stderr)
+                self.assertEqual(card, "")
+
+    def test_stats_missing_source_is_rejected(self) -> None:
+        stats = dict(STATS)
+        del stats["source"]
+        result, card = self.render(stats)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("stats source", result.stderr)
+        self.assertEqual(card, "")
+
+    def test_stats_must_be_a_json_object(self) -> None:
+        result, card = self.render([1, 2, 3])
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("stats must be a JSON object", result.stderr)
+        self.assertEqual(card, "")
+
+    def test_malformed_stats_json_is_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            stats_path = Path(directory) / "stats.json"
+            stats_path.write_text("{oops", encoding="utf-8")
+            result = run(
+                CARD,
+                EXAMPLES / "commute-rain-output.json",
+                "--stats",
+                stats_path,
+            )
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("not valid JSON", result.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

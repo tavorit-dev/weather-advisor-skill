@@ -203,6 +203,11 @@ python demo/weather_card.py response.json --brief brief.json --output card.html
 # 中文界面（由提问语言决定）
 python demo/weather_card.py response.json --query "今日天津天气" --output card.html
 
+# 附带本轮真实的 token 用量与耗时
+python scripts/claude_session_stats.py --output stats.json
+python demo/weather_card.py response.json --brief brief.json --stats stats.json \
+  --output card.html
+
 # 打开浏览器 / 导出 / 校验已有卡片
 python demo/weather_card.py response.json --brief brief.json --open
 python demo/weather_card.py response.json --brief brief.json --print
@@ -210,15 +215,32 @@ python demo/weather_card.py --check card.html
 ```
 
 它只做渲染，不做分析：不新增天气数值、阈值或建议，也不改写响应。卡片上的每个
-数字都来自传入的响应或 brief。
+数字都来自传入的响应或 brief（`--stats` 的 token 与耗时是另一类数据，见下）。
 
 | 输入 | 卡片内容 |
 | --- | --- |
 | 仅响应 | 状态、意图、摘要、建议、风险、证据、缺失信息、不确定性 |
 | 响应 + brief | 追加窗口摘要磁贴与逐小时曲线（温度、体感、降雨概率、降水量、风速、阵风、PM2.5、PM10），每条曲线标注峰值 |
+| 响应 + stats | 页脚最后追加「生成统计」：输入、输出、合计 tokens，耗时与模型 |
 
 卡片按「读者需要的顺序」排列：摘要之后紧跟**建议**（带强调色左边框，只有确实
 有建议时才加），然后是支撑建议的时段证据、风险，最后是折叠的原始证据列表。
+
+### 生成统计
+
+`--stats` 读取由 `scripts/claude_session_stats.py` 生成的 JSON，在页脚最后追加
+「生成统计」区块。helper 只依赖标准库，从 Claude Code 的会话 transcript 中定位
+当前会话（`CLAUDE_CODE_SESSION_ID`），按 `message.id` 去重后汇总最后一次提问以来
+的 input / output / cache tokens，并以该提问为起点计算耗时。
+
+- 统计截至卡片生成前，**正在生成本卡片的那次请求尚未计入**；区块里明确写出这一点。
+- 起点是 transcript 中最后一条真人提问（含 `/weather-advisor-card` 命令本身）。
+  如果卡片是在后续追问里生成，统计只覆盖这一轮，不包含更早的咨询。
+- 找不到 transcript、没有 session id 或还没有任何用量时，helper 报错退出，卡片
+  **省略**该区块，而不是显示 0——0 是一次测量，缺失不是。
+- 渲染器只接受 `source` 为 `claude-code-transcript` 的 stats 文件；字段缺失、
+  负数、来源不符都会报错退出。token 数字不允许手填或估算。
+- 区块仍是静态 HTML，无脚本，打印时照常出现。
 
 ### 移动端布局
 
