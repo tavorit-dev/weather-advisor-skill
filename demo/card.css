@@ -271,11 +271,14 @@ ul {
   margin: 4px 0 14px;
 }
 
-/* Summary figures. Auto-fit rather than a fixed count: the brief decides how
-   many metrics exist, and a missing one must not leave a hole in the grid. */
+/* Summary figures. Two fixed columns rather than auto-fit: three columns at
+   phone width left an empty cell beside the full-width total/peak tile, and
+   made each tile narrow enough that "16.1 km/h" wrapped to two lines. The
+   brief decides how many metrics there are, so no column count is clean for
+   every case, but two is clean for the common one and never wraps. */
 .metrics {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
 }
 
@@ -326,66 +329,52 @@ ul {
 }
 
 /* Curves ------------------------------------------------------------------
-   Eight stacked charts made the window section two thirds of the document and
-   pushed the risks and the caveats far below the fold. On a phone they are a
-   horizontal gallery instead: one chart at a time at a readable size, swiped
-   with the native scroll. No script is involved, and `scroll-snap` keeps the
-   charts aligned to the edge. */
+   Eight full-width stacked charts made the window section two thirds of the
+   document and pushed the risks and the caveats far below the fold. They are
+   tiled instead: every series is visible at once, and none is hidden behind a
+   swipe. Two columns is what fits a phone; the grid adds columns as the sheet
+   widens, and drops to one below 360px, where a tile would be too narrow to
+   read a trend from. */
 
 .curves {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 8px;
   margin-top: 14px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  /* The gallery bleeds to the sheet edges so a chart is visibly cut off,
-     which is what tells the reader there is more to swipe. */
-  margin-inline: calc(var(--pad) * -1);
-  padding-inline: var(--pad);
-  padding-bottom: 2px;
-}
-
-.curves::-webkit-scrollbar {
-  display: none;
 }
 
 .curve-card {
-  flex: 0 0 auto;
-  width: min(78%, 300px);
   margin: 0;
-  scroll-snap-align: start;
+  min-width: 0;
   background: var(--sunken);
   border-radius: var(--radius-inner);
-  padding: 12px 14px 10px;
+  padding: 10px 12px 8px;
 }
 
+/* Label above value, rather than label and value on one line. In a two-column
+   tile the line "PM2.5  16.4 μg/m³" does not fit at 360px, and letting it wrap
+   would push the chart down in that tile alone, so the charts in a row would
+   no longer start at the same height. A fixed two-line caption keeps every
+   tile aligned whatever its unit. */
 .curve-card figcaption {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 13px;
+  display: block;
+  font-size: 12px;
   color: var(--muted);
 }
 
 .curve-card figcaption strong {
+  display: block;
   color: var(--ink);
   font-size: 16px;
   font-variant-numeric: tabular-nums;
-}
-
-.curve-card figcaption small {
-  color: var(--muted);
-  font-weight: 400;
+  margin-top: 1px;
 }
 
 .curve {
   display: block;
   width: 100%;
-  height: 76px;
-  margin-top: 8px;
+  height: 56px;
+  margin-top: 6px;
 }
 
 .curve-area {
@@ -619,8 +608,8 @@ details[open] > summary .toggle::before {
   color: var(--muted);
 }
 
-/* Wider than a phone: the chart gallery can afford to show more than one
-   chart, and the sheet gets roomier padding. */
+/* Wider than a phone: the sheet gets roomier padding, and the curve grid
+   picks up another column on its own. */
 @media (min-width: 640px) {
   :root {
     --pad: 24px;
@@ -628,10 +617,6 @@ details[open] > summary .toggle::before {
 
   body {
     padding: 28px 16px 48px;
-  }
-
-  .curve-card {
-    width: 260px;
   }
 }
 
@@ -656,8 +641,8 @@ details[open] > summary .toggle::before {
 
 /* Print / export ----------------------------------------------------------
    The card is exported as an image by printing to PDF, so print rules do the
-   real work: force light ink on white, drop the horizontal gallery back to a
-   single readable column, and stop a section from being split across pages. */
+   real work: force light ink on white, pin the curve grid to a fixed column
+   count, and stop a section from being split across pages. */
 
 @media print {
   :root {
@@ -716,20 +701,11 @@ details[open] > summary .toggle::before {
     page-break-inside: avoid;
   }
 
-  /* A horizontal gallery cannot be swiped on paper, and a chart cut off at
-     the page edge is worse than a small one: print lays the charts out as a
-     grid instead, so all of them are on the sheet. */
+  /* Fixed columns rather than auto-fit, so the layout does not depend on the
+     paper size or the margin the reader chose. */
   .curves {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 8px;
-    overflow: visible;
-    margin-inline: 0;
-    padding-inline: 0;
-  }
-
-  .curve-card {
-    width: auto;
   }
 
   .curve {

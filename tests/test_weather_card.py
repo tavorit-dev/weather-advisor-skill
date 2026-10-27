@@ -402,20 +402,33 @@ class WeatherCardTests(unittest.TestCase):
         self.assertGreaterEqual(body.count('class="section'), 6)
         self.assertNotIn("card-stack", body)
 
-    def test_curves_are_a_scrollable_gallery_and_a_print_grid(self) -> None:
-        """Eight stacked charts made the window section two thirds of the card.
-
-        On screen the charts scroll horizontally; on paper a gallery cannot be
-        swiped and a chart cut off at the page edge is worse than a small one,
-        so print lays them out as a grid.
-        """
+    def test_curves_are_tiled_rather_than_scrolled(self) -> None:
+        """Every series is visible at once; none is hidden behind a swipe."""
         card = self.render()
-        self.assertIn("scroll-snap-type", card)
-        self.assertIn("overflow-x: auto", card)
+        curves_rule = card.split(".curves {", 1)[1].split("}", 1)[0]
+        self.assertIn("display: grid", curves_rule)
+        self.assertIn("grid-template-columns", curves_rule)
+        self.assertNotIn("overflow-x", curves_rule)
+        # Nothing scrolls sideways: a tile the reader has to swipe to reach is
+        # a series they may never see.
+        self.assertNotIn("scroll-snap", card)
+        # Print keeps the grid at a fixed column count.
         print_block = card.split("@media print", 1)[1]
         self.assertIn("grid-template-columns", print_block)
-        # The gallery is CSS, not behaviour: the card keeps zero scripts.
-        self.assertNotIn("<script", card)
+
+    def test_curve_caption_does_not_repeat_the_unit(self) -> None:
+        """The peak figure already ends with its unit: "18.4 °C", not "18.4 °C °C"."""
+        card = self.render()
+        captions = re.findall(r"<figcaption>.*?</figcaption>", card, re.DOTALL)
+        self.assertTrue(captions)
+        for caption in captions:
+            # Stripping tags leaves a space where each tag was, and the unit
+            # would be separated from itself by two of them; collapse the run
+            # so the check does not pass on a formatting accident.
+            detail = re.sub(r"\s+", " ", TAG.sub(" ", caption)).strip()
+            with self.subTest(caption=detail):
+                for duplicated in ("°C °C", "mm mm", "km/h km/h", "% %"):
+                    self.assertNotIn(duplicated, detail)
 
     def test_evidence_ids_are_not_printed_under_every_item(self) -> None:
         """Dozens of chips drowned the data they were meant to support."""
