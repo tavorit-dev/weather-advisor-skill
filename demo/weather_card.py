@@ -76,12 +76,19 @@ STRINGS: dict[str, dict[str, str]] = {
         "mode_live": "live",
         "mode_offline": "offline",
         "window_evidence": "Window evidence",
+        "window_evidence_hint": (
+            "Hourly figures behind the advice. Every number here traces back to "
+            "an evidence entry listed under Evidence."
+        ),
         "no_summary_values": "The brief carries no summary values.",
         "no_curves": "The brief has no hourly rows, so no curves are shown.",
         "not_covered": "Not covered by this demo",
+        "not_covered_intro": (
+            "This demo has no data source for these, so their absence here says "
+            "nothing about the location:"
+        ),
         "not_covered_body": (
-            "{gaps}. Absence of an alert here is not evidence that no alert is "
-            "in effect."
+            "Absence of an alert here is not evidence that no alert is in effect."
         ),
         "air_quality": "Air quality",
         "air_quality_body": (
@@ -90,7 +97,14 @@ STRINGS: dict[str, dict[str, str]] = {
             "scales are not directly comparable."
         ),
         "evidence": "Evidence",
+        "evidence_count": "Evidence ({count})",
+        "evidence_note": (
+            "Why IDs are shown: each recommendation and risk cites these "
+            "evidence IDs, so any figure on the card can be traced back to the "
+            "entry it came from."
+        ),
         "recommendations": "Recommendations",
+        "recommendations_hint": "What to do, and why.",
         "risks": "Risks",
         "missing_information": "Missing information",
         "uncertainty": "Uncertainty",
@@ -98,6 +112,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "no_evidence": "No evidence entries in this response.",
         "no_recommendations": "No recommendations in this response.",
         "no_risks": "No risks listed in this response.",
+        "show_details": "Show",
+        "hide_details": "Hide",
         "weather_advice": "Weather advice",
         "hours_shown": "{included}/{total} hours shown",
         "every_hours": "every {step}h",
@@ -151,17 +167,27 @@ STRINGS: dict[str, dict[str, str]] = {
         "mode_live": "实时",
         "mode_offline": "离线",
         "window_evidence": "时段证据",
+        "window_evidence_hint": (
+            "建议背后的逐小时数据。这里的每个数字都能在下方「证据」中找到对应条目。"
+        ),
         "no_summary_values": "该摘要不含统计值。",
         "no_curves": "该摘要没有逐小时数据，因此不绘制曲线。",
         "not_covered": "本 demo 未覆盖",
-        "not_covered_body": "{gaps}。此处没有预警信息，不等于没有预警生效。",
+        "not_covered_intro": "本 demo 没有接入以下数据源，因此此处不显示它们并不代表当地没有：",
+        "not_covered_body": "此处没有预警信息，不等于没有预警生效。",
         "air_quality": "空气质量",
         "air_quality_body": (
             "PM2.5 峰值 {pm25}，US AQI {us}，European AQI {eu}。"
             "CAMS 预报模型输出，非地面监测站实测值；两套 AQI 标度不可直接比较。"
         ),
         "evidence": "证据",
+        "evidence_count": "证据（{count} 条）",
+        "evidence_note": (
+            "为什么显示 ID：每条建议和风险都引用了这些证据 ID，"
+            "卡片上的每个数字都能据此追溯到来源条目。"
+        ),
         "recommendations": "建议",
+        "recommendations_hint": "该做什么，以及为什么。",
         "risks": "风险",
         "missing_information": "缺失信息",
         "uncertainty": "不确定性",
@@ -169,6 +195,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "no_evidence": "该响应中没有证据条目。",
         "no_recommendations": "该响应中没有建议。",
         "no_risks": "该响应中没有列出风险。",
+        "show_details": "展开",
+        "hide_details": "收起",
         "weather_advice": "天气建议",
         "hours_shown": "显示 {included}/{total} 小时",
         "every_hours": "每 {step} 小时",
@@ -383,15 +411,6 @@ def metric_values(label: str, values: dict[str, Any]) -> list[float]:
     return series
 
 
-def metric_ids(label: str, values: dict[str, Any]) -> list[str]:
-    ids: list[str] = []
-    for hour in values.get("hours", []):
-        evidence_id = (hour.get("evidence_ids") or {}).get(label)
-        if isinstance(evidence_id, str) and evidence_id and evidence_id not in ids:
-            ids.append(evidence_id)
-    return ids
-
-
 def extreme(
     summary: dict[str, Any], key: str, mode: str
 ) -> dict[str, Any] | None:
@@ -494,15 +513,6 @@ def check_response(response: dict[str, Any]) -> None:
         raise DemoError("needs_clarification requires a clarification_question")
 
 
-def reference_html(ids: Any) -> str:
-    if not isinstance(ids, list) or not ids:
-        return ""
-    chips = "".join(
-        f'<span class="ref">{esc(item)}</span>' for item in ids if item
-    )
-    return f'<div class="refs">{chips}</div>' if chips else ""
-
-
 def window_html(brief: dict[str, Any], t: Translator) -> str:
     coverage = brief.get("coverage") or {}
     location = brief.get("location") or {}
@@ -551,8 +561,13 @@ def window_html(brief: dict[str, Any], t: Translator) -> str:
             if entry is None:
                 continue
             value = format_extreme(entry, unit)
+        # A total/peak tile carries a phrase rather than a number, so it takes
+        # a full row of the grid. Left in a column it wraps, and a grid row is
+        # as tall as its tallest tile, which stretches the numbers beside it
+        # into half-empty boxes.
+        css = "metric metric-wide" if tile_mode == "total" else "metric"
         cards.append(
-            '<div class="metric">'
+            f'<div class="{css}">'
             f'<div class="metric-label">{esc(t(label_key))}</div>'
             f'<div class="metric-value">{esc(value)}</div>'
             f'<div class="metric-unit">{esc(unit)}</div>'
@@ -571,7 +586,6 @@ def window_html(brief: dict[str, Any], t: Translator) -> str:
         if len(series) < 2:
             continue
         label = t(label_key)
-        ids = metric_ids(values_key, brief)
         peak = extreme(metrics, summary_key, curve_mode)
         if peak is None and series:
             peak = {"value": max(series), "unit": unit}
@@ -580,13 +594,15 @@ def window_html(brief: dict[str, Any], t: Translator) -> str:
             label=label,
             window=coverage.get("window") or "",
         ).strip()
+        # The chart does not print its own evidence IDs. Eight charts each
+        # carrying six chips put 59 of them on one card and buried the curve
+        # they belong to; the IDs are shown once, in the evidence section.
         curves.append(
             '<figure class="curve-card">'
             f'<figcaption><span>{esc(label)}</span>'
             f'<strong>{esc(format_extreme(peak, unit))} <small>{esc(unit)}</small></strong>'
             f"</figcaption>"
             f"{sparkline(series, title)}"
-            f"{reference_html(ids)}"
             "</figure>"
         )
 
@@ -600,9 +616,14 @@ def window_html(brief: dict[str, Any], t: Translator) -> str:
     gap_labels = [t(gap) if gap in STRINGS[t.lang] else str(gap) for gap in gaps]
     gaps_html = ""
     if gap_labels:
+        # One gap per line rather than a comma run: the reader is meant to
+        # check each one off, and a wrapped list of five hides that.
+        items = "".join(f"<li>{esc(gap)}</li>" for gap in gap_labels)
         gaps_html = (
             f'<div class="notice notice-gap"><strong>{esc(t("not_covered"))}</strong>'
-            f'<p>{esc(t("not_covered_body", gaps=", ".join(gap_labels)))}</p></div>'
+            f'<p>{esc(t("not_covered_intro"))}</p>'
+            f'<ul class="gap-list">{items}</ul>'
+            f'<p class="gap-caveat">{esc(t("not_covered_body"))}</p></div>'
         )
 
     air_html = ""
@@ -626,10 +647,11 @@ def window_html(brief: dict[str, Any], t: Translator) -> str:
     )
 
     return (
-        '<section class="card window">'
+        '<section class="section window">'
         f'<div class="section-head"><h2>{esc(t("window_evidence"))}</h2>'
         f'<span class="chip">{window}</span></div>'
         f'<div class="window-meta">{meta}</div>'
+        f'<p class="section-hint">{esc(t("window_evidence_hint"))}</p>'
         f"{tiles_html}"
         f"{curves_html}{air_html}{gaps_html}"
         "</section>"
@@ -664,11 +686,14 @@ def body_html(
         for item in evidence
     ) or f'<li class="muted">{esc(t("no_evidence"))}</li>'
 
+    # Recommendations and risks print their action and their reason, not the
+    # evidence IDs they rest on. At phone width a chip row under every item is
+    # a third of the card's height spent on strings the reader cannot act on;
+    # the IDs live in the evidence section, and the section hint says so.
     recommendations_html = "".join(
         '<li class="rec">'
         f'<p class="rec-action">{esc(item.get("action", ""))}</p>'
-        f'<p class="rec-reason">{esc(item.get("reason", ""))}</p>'
-        f"{reference_html(item.get('evidence_ids'))}</li>"
+        f'<p class="rec-reason">{esc(item.get("reason", ""))}</p></li>'
         for item in recommendations
     ) or f'<li class="muted">{esc(t("no_recommendations"))}</li>'
 
@@ -676,8 +701,7 @@ def body_html(
         '<li class="risk">'
         f'<span class="severity severity-{esc(item.get("severity", "unknown"))}">'
         f'{esc(t(item.get("severity") or "unknown"))}</span>'
-        f'<div><p>{esc(item.get("description", ""))}</p>'
-        f"{reference_html(item.get('evidence_ids'))}</div></li>"
+        f'<div><p>{esc(item.get("description", ""))}</p></div></li>'
         for item in risks
     ) or f'<li class="muted">{esc(t("no_risks"))}</li>'
 
@@ -694,8 +718,30 @@ def body_html(
             return ""
         entries = "".join(f"<li>{esc(item)}</li>" for item in items)
         return (
-            f'<section class="card {css}"><h2>{esc(t(title_key))}</h2>'
+            f'<section class="section {css}"><h2>{esc(t(title_key))}</h2>'
             f"<ul>{entries}</ul></section>"
+        )
+
+    # The evidence list is the longest block on the card and the least useful to
+    # a reader who is not auditing a citation: it is a list of IDs and one-line
+    # claims. It collapses behind a <details> so it stays one click away without
+    # pushing the advice off the first screen. <details> is markup, not script,
+    # so the card stays script-free; a browser without it shows the list open.
+    if evidence:
+        evidence_count = t("evidence_count", count=len(evidence))
+        evidence_block = (
+            '<section class="section evidence-section">'
+            '<details class="collapsible">'
+            f'<summary><h2>{esc(evidence_count)}</h2>'
+            f'<span class="toggle" data-show="{esc(t("show_details"))}" '
+            f'data-hide="{esc(t("hide_details"))}"></span></summary>'
+            f'<p class="section-hint">{esc(t("evidence_note"))}</p>'
+            f'<ul class="evidence">{evidence_html}</ul></details></section>'
+        )
+    else:
+        evidence_block = (
+            f'<section class="section"><h2>{esc(t("evidence"))}</h2>'
+            f'<ul class="evidence">{evidence_html}</ul></section>'
         )
 
     brief_window = window_html(brief, t) if brief else ""
@@ -703,9 +749,32 @@ def body_html(
         "footer_meta", version=version, intent=intent, status=status
     )
 
+    # The accent edge and the hint describe real advice, so an empty
+    # recommendations list gets neither: highlighting the placeholder would
+    # dress up a card that has nothing to recommend.
+    if recommendations:
+        recommendations_block = (
+            '<section class="section recommendations-section">'
+            f'<h2>{esc(t("recommendations"))}</h2>'
+            f'<p class="section-hint">{esc(t("recommendations_hint"))}</p>'
+            f'<ul class="recommendations">{recommendations_html}</ul></section>'
+        )
+    else:
+        recommendations_block = (
+            f'<section class="section"><h2>{esc(t("recommendations"))}</h2>'
+            f'<ul class="recommendations">{recommendations_html}</ul></section>'
+        )
+
+    # The whole card is one sheet rather than a stack of framed cards: on a
+    # phone a dozen separate boxes read as clutter and spend height on padding
+    # and gaps that the advice needs.
+    #
+    # The recommendation is what the reader came for, so it sits directly under
+    # the summary; the window evidence that justifies it, the risks, and the raw
+    # evidence list follow in descending order of how much the reader needs them.
     return (
-        '<main class="card-stack">'
-        '<header class="card header">'
+        '<main class="sheet">'
+        '<header class="section header">'
         f'<div class="header-top"><span class="badge badge-{esc(response["status"])}">{status}</span>'
         f'<span class="intent">{intent}</span></div>'
         f'<h1>{esc(location or t("weather_advice"))}</h1>'
@@ -713,16 +782,14 @@ def body_html(
         + f'<p class="summary">{summary}</p>'
         f"{clarification_html}"
         "</header>"
+        f"{recommendations_block}"
         f"{brief_window}"
-        f'<section class="card"><h2>{esc(t("evidence"))}</h2>'
-        f'<ul class="evidence">{evidence_html}</ul></section>'
-        f'<section class="card"><h2>{esc(t("recommendations"))}</h2>'
-        f'<ul class="recommendations">{recommendations_html}</ul></section>'
-        f'<section class="card"><h2>{esc(t("risks"))}</h2>'
+        f'<section class="section"><h2>{esc(t("risks"))}</h2>'
         f'<ul class="risks">{risks_html}</ul></section>'
+        f"{evidence_block}"
         f"{list_block('missing_information', missing, 'missing')}"
         f"{list_block('uncertainty', uncertainty, 'uncertainty')}"
-        f'<footer class="card footer"><p>{esc(footer_meta)}</p>'
+        f'<footer class="section footer"><p>{esc(footer_meta)}</p>'
         f'<p>{esc(t("footer_disclaimer"))}</p>'
         f'<p class="print-hint">{esc(t("print_hint"))}</p>'
         "</footer>"

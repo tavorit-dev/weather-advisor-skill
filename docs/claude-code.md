@@ -152,12 +152,38 @@ python3 demo/weather_card.py --check card.html
 ```
 
 - **Response only.** Without `--brief` the card shows the summary, status,
-  intent, evidence, recommendations, risks, missing information, and
+  intent, recommendations, risks, evidence, missing information, and
   uncertainty. No metrics or curves are drawn.
 - **With a brief.** The window from `demo/weather_brief.py` is added as summary
   tiles and hourly curves — temperature, apparent temperature, rain chance,
-  precipitation, wind, gusts, PM2.5, PM10 — each labelled with its peak figure
-  and the evidence IDs behind it.
+  precipitation, wind, gusts, PM2.5, PM10 — each labelled with its peak figure.
+- **Reading order.** The card is ordered by what the reader needs first: the
+  summary, then the recommendations, then the window evidence behind them, the
+  risks, and finally the raw evidence list. The recommendations section carries
+  an accent edge, and only when there is real advice to show — an empty list is
+  not highlighted.
+- **Mobile layout.** The card is designed at phone width: one sheet divided by
+  hairline rules rather than a stack of separately framed cards, which at 390px
+  reads as box-in-box clutter and spends height on padding and gaps. The hourly
+  curves are a horizontal snap-scrolling gallery rather than a vertical stack,
+  because eight stacked charts made the window section two thirds of the
+  document and pushed the risks and caveats far below the fold. The gallery uses
+  `scroll-snap` and native overflow, so the card stays script-free; the print
+  rules lay the charts out as a two-column grid, since a gallery cannot be
+  swiped on paper.
+- **Evidence IDs.** The card does not print an `evidence_id` under every
+  recommendation, risk, and chart. Doing so put dozens of chips on one card and
+  drowned the data they were meant to support. The IDs are shown once, in the
+  evidence section, which is where a reader goes to audit a citation.
+- **Collapsed evidence.** The evidence list folds behind a `<details>` element
+  headed with its entry count, since it is the longest block on the card and
+  the least useful to a reader who is not auditing a citation. `<details>` is
+  markup, not script, so the card stays script-free, and a browser without it
+  shows the list open. Expanding it explains what an `evidence_id` is and why
+  the card shows them.
+- **Uncovered metrics.** The demo's `demo_gaps` are listed one per line, with a
+  line stating that the demo has no data source for them, so a reader does not
+  read "not shown" as "not happening".
 - **What it refuses.** A response missing a required field, an unknown `status`,
   an unknown `intent`, or a `needs_clarification` without a question is
   rejected with the reason on stderr, rather than rendered as a plausible card.
@@ -202,7 +228,9 @@ offline-openable property.
 
 The print stylesheet forces light ink on white regardless of the viewer's theme,
 prevents a card from splitting across pages, and drops the on-screen print hint,
-so the export reads as a document rather than a screenshot of the dark theme.
+so the export reads as a document rather than a screenshot of the dark theme. It
+also expands the collapsed evidence list, since a paper reader cannot click to
+open it and the export would otherwise silently omit the evidence.
 
 Output goes to a temporary file whose path is printed, or to `--output`.
 `--open` opens it in the browser, and `--print` opens it and explains the export

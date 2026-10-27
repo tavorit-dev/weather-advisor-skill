@@ -111,16 +111,42 @@ one failed.
 
 ## What the card shows
 
+In reading order, most useful first:
+
 - a status badge and the intent;
 - the response summary, and the clarification question when there is one;
+- the recommendations, with their reasons. This section carries an accent edge,
+  and only when the response actually has recommendations;
 - window tiles and hourly curves, when a brief is supplied: temperature,
   apparent temperature, rain chance, precipitation, wind, gusts, PM2.5, PM10,
-  with the peak figure and the evidence IDs behind each curve;
+  each with its peak figure;
 - the air-quality notice, and the demo's gaps (official alerts, UV, humidity,
-  visibility, thunderstorm);
-- evidence, recommendations, and risks, each citing its `evidence_id` values;
+  visibility, thunderstorm) listed one per line, with the note that the demo
+  has no data source for them;
+- the risks, each with its severity;
+- the evidence list, collapsed behind a `<details>` headed with its entry
+  count. Expanding it shows each claim with its ID, and explains what an
+  `evidence_id` is and why the card shows them;
 - missing information, uncertainty, the Open-Meteo attribution and license,
   and the statement that the card is not an official warning.
+
+The card is laid out for a phone: one sheet divided by hairline rules rather
+than a stack of separately framed cards, and the hourly curves as a horizontal
+snap-scrolling gallery rather than a vertical stack. Eight stacked charts made
+the window section two thirds of the document and pushed the risks and the
+caveats far below the fold. The gallery uses `scroll-snap` and native overflow,
+and the print rules lay the charts out as a two-column grid, since a gallery
+cannot be swiped on paper.
+
+Evidence IDs are shown once, in the evidence section, not under every
+recommendation, risk, and chart. Printing them under each item put dozens of
+chips on one card and drowned the data they were meant to support.
+
+The collapse is `<details>`, which is markup rather than script, so the card
+keeps its zero-script property. Do not replace it with a JavaScript toggle, and
+do not remove it: the evidence list is the longest block on the card, and a
+reader who is not auditing a citation should not have to scroll past it to
+reach the advice.
 
 ## Constraints
 
@@ -137,5 +163,9 @@ one failed.
   external stylesheets, no remote images. Keep it that way, so it can be opened
   offline and shared as a single file. Image export works through the browser's
   print dialog precisely so this stays true.
+- Anything the card collapses must still appear in a printed export. A paper
+  reader cannot click, so the print rules reveal collapsed content rather than
+  reproducing the on-screen folded state. Never fold content away in a way that
+  only a pointer can restore.
 - The renderer is `demo/weather_card.py`, part of the replaceable demo layer.
   It does not belong in the canonical `SKILL.md`.

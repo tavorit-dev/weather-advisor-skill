@@ -97,6 +97,86 @@ class WeatherCardTests(unittest.TestCase):
         for item in response.get("uncertainty", []):
             self.assertIn(item, text)
 
+    def test_advice_is_shown_before_the_evidence_behind_it(self) -> None:
+        """The recommendation is the point of the card, so it comes first."""
+        body = self.render().split("<body>", 1)[1]
+        order = [
+            body.index('class="summary"'),
+            body.index("recommendations-section"),
+            body.index('class="section window"'),
+            body.index('class="risks"'),
+            body.index("evidence-section"),
+        ]
+        self.assertEqual(order, sorted(order))
+
+    def test_evidence_list_collapses_without_scripting(self) -> None:
+        """The raw evidence list folds away, and the fold stays script-free."""
+        card = self.render()
+        self.assertIn("<details>", card)
+        self.assertIn("<summary>", card)
+        # Collapsing is markup, not behaviour: the card keeps zero scripts.
+        self.assertNotIn("<script", card)
+        self.assertNotIn("onclick", card)
+        # The count tells the reader what is folded away.
+        count = len(
+            json.loads(
+                (EXAMPLES / "commute-rain-output.json").read_text(encoding="utf-8")
+            )["evidence"]
+        )
+        self.assertIn(f"Evidence ({count})", visible_text(card))
+        # The evidence itself is still present, just folded.
+        self.assertIn('class="evidence"', card)
+
+    def test_evidence_id_explanation_is_shown(self) -> None:
+        """A reader who sees ev-rain-001 is told why the ID is on the card."""
+        text = visible_text(self.render())
+        self.assertIn("Why IDs are shown", text)
+        self.assertIn("evidence IDs", text)
+
+    def test_empty_recommendations_are_not_highlighted(self) -> None:
+        """An accent edge would dress up a card that has nothing to advise."""
+        card = self.render("missing-location-output.json", with_brief=False)
+        body = card.split("<body>", 1)[1]
+        text = visible_text(card)
+        self.assertIn("No recommendations in this response.", text)
+        self.assertNotIn("recommendations-section", body)
+        self.assertNotIn("What to do, and why.", text)
+
+    def test_uncovered_metrics_are_listed_one_per_line(self) -> None:
+        """A wrapped comma run hides which metrics are missing."""
+        sys.path.insert(0, str(ROOT / "demo"))
+        import weather_card  # noqa: PLC0415
+
+        card = self.render()
+        gaps = json.loads(self.brief.stdout)["demo_gaps"]
+        self.assertGreater(len(gaps), 1)
+        self.assertIn('class="gap-list"', card)
+        for gap in gaps:
+            with self.subTest(gap=gap):
+                # Gaps are translated like any other interface label.
+                label = weather_card.STRINGS["en"].get(gap, gap)
+                self.assertIn(f"<li>{label}</li>", card)
+        # The caveat is a separate sentence, not glued onto the list.
+        self.assertIn(
+            "Absence of an alert here is not evidence", visible_text(card)
+        )
+        self.assertIn("official alerts", visible_text(card))
+
+    def test_print_always_reveals_the_collapsed_evidence(self) -> None:
+        """A collapsed <details> would silently drop evidence from a PDF.
+
+        Setting `display` on the children does not do it: a closed <details>
+        hides its whole content slot, so the slot itself must be revealed via
+        ``::details-content``. Verified against a headless Chrome print.
+        """
+        card = self.render()
+        print_block = card.split("@media print", 1)[1]
+        self.assertIn("::details-content", print_block)
+        self.assertIn("content-visibility: visible", print_block)
+        # The marker and the toggle label are screen affordances only.
+        self.assertIn(".toggle", print_block)
+        self.assertIn("display: none", print_block)
+
     def test_card_shows_window_evidence_and_curves(self) -> None:
         brief = json.loads(self.brief.stdout)
         card = self.render()
@@ -111,13 +191,23 @@ class WeatherCardTests(unittest.TestCase):
         self.assertEqual(card.count("<svg"), curves)
         self.assertIn("<polyline", card)
 
-        # Every evidence ID the brief exposes for a plotted hour is on the card.
-        plotted = set()
-        for label in ("temperature", "wind_speed"):
-            for hour in brief["hours"]:
-                plotted.add(hour["evidence_ids"][label])
-        for evidence_id in plotted:
-            self.assertIn(evidence_id, card)
+        # The response's own evidence IDs are what the card cites, and they are
+        # shown in the evidence list rather than under each item. The brief's
+        # per-hour IDs are a separate namespace and are not evidence entries, so
+        # the card does not print them: an ID on the card must resolve to an
+        # entry in the evidence list, or it is a dangling reference.
+        response = json.loads(
+            (EXAMPLES / "commute-rain-output.json").read_text(encoding="utf-8")
+        )
+        for item in response["evidence"]:
+            with self.subTest(evidence_id=item["evidence_id"]):
+                self.assertIn(
+                    f'<span class="ref">{item["evidence_id"]}</span>', card
+                )
+        # Every ID the card does print resolves to an evidence entry.
+        printed = set(re.findall(r'<span class="ref">([^<]+)</span>', card))
+        listed = {item["evidence_id"] for item in response["evidence"]}
+        self.assertTrue(printed <= listed, printed - listed)
 
     def test_card_carries_attribution_and_limits(self) -> None:
         card = self.render()
@@ -302,6 +392,42 @@ class WeatherCardTests(unittest.TestCase):
         self.addCleanup(path.unlink, missing_ok=True)
         self.assertTrue(path.is_file())
         self.assertTrue(path.read_text(encoding="utf-8").startswith("<!doctype html>"))
+
+    def test_card_is_one_sheet_rather_than_a_stack_of_cards(self) -> None:
+        """A dozen framed cards read as box-in-box clutter at phone width."""
+        card = self.render()
+        body = card.split("<body>", 1)[1]
+        self.assertEqual(body.count('class="sheet"'), 1)
+        # Sections divide the sheet; none of them is a framed card of its own.
+        self.assertGreaterEqual(body.count('class="section'), 6)
+        self.assertNotIn("card-stack", body)
+
+    def test_curves_are_a_scrollable_gallery_and_a_print_grid(self) -> None:
+        """Eight stacked charts made the window section two thirds of the card.
+
+        On screen the charts scroll horizontally; on paper a gallery cannot be
+        swiped and a chart cut off at the page edge is worse than a small one,
+        so print lays them out as a grid.
+        """
+        card = self.render()
+        self.assertIn("scroll-snap-type", card)
+        self.assertIn("overflow-x: auto", card)
+        print_block = card.split("@media print", 1)[1]
+        self.assertIn("grid-template-columns", print_block)
+        # The gallery is CSS, not behaviour: the card keeps zero scripts.
+        self.assertNotIn("<script", card)
+
+    def test_evidence_ids_are_not_printed_under_every_item(self) -> None:
+        """Dozens of chips drowned the data they were meant to support."""
+        card = self.render()
+        # Markup only: the embedded stylesheet also names the .ref class.
+        body = STYLE.sub(" ", card).split("<body>", 1)[1]
+        before, _, after = body.partition('<section class="section evidence-section"')
+        self.assertTrue(after, "the evidence section is missing")
+        # Chips appear only inside the evidence list, not under the advice,
+        # the risks, or the charts.
+        self.assertNotIn('class="ref"', before)
+        self.assertIn('class="ref"', after)
 
     def test_renderer_does_not_need_the_network_or_third_party_packages(self) -> None:
         source = CARD.read_text(encoding="utf-8")
