@@ -165,12 +165,12 @@ python3 demo/weather_card.py --check card.html
 - **Mobile layout.** The card is designed at phone width: one sheet divided by
   hairline rules rather than a stack of separately framed cards, which at 390px
   reads as box-in-box clutter and spends height on padding and gaps. The hourly
-  curves are a horizontal snap-scrolling gallery rather than a vertical stack,
-  because eight stacked charts made the window section two thirds of the
-  document and pushed the risks and caveats far below the fold. The gallery uses
-  `scroll-snap` and native overflow, so the card stays script-free; the print
-  rules lay the charts out as a two-column grid, since a gallery cannot be
-  swiped on paper.
+  curves are tiled in a grid rather than stacked one per row, because eight
+  full-width charts made the window section two thirds of the document and
+  pushed the risks and caveats far below the fold. Tiling keeps every series
+  visible at once, where a horizontal gallery would hide some behind a swipe.
+  The grid is two columns on a phone and widens with the sheet; print pins it to
+  three columns.
 - **Evidence IDs.** The card does not print an `evidence_id` under every
   recommendation, risk, and chart. Doing so put dozens of chips on one card and
   drowned the data they were meant to support. The IDs are shown once, in the

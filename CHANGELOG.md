@@ -162,15 +162,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dozen separately framed cards, which at 390px read as box-in-box clutter and
   spent height on padding and gaps the advice needed. It is now one sheet with
   hairline-separated sections, and body text is 16px with the summary figures
-  set in full-width tiles. The same card measured 3934px tall before and 2443px
-  after.
-- The card's hourly curves are now a horizontal snap-scrolling gallery instead
-  of a vertical stack. Eight stacked charts made the window section two thirds
-  of the document (2606px of 3934px) and pushed the risks and the caveats far
-  below the fold. On paper, where a gallery cannot be swiped and a chart cut off
-  at the page edge is worse than a small one, the print rules lay the charts out
-  as a two-column grid so all of them are on the sheet. The gallery uses
-  `scroll-snap` and native overflow, so the card stays script-free.
+  set in tiles. The same card measured 3934px tall before and 2867px after.
+- The card's hourly curves are now tiled in a grid instead of stacked one per
+  row. Eight full-width charts made the window section two thirds of the
+  document (2606px of 3934px) and pushed the risks and the caveats far below
+  the fold; tiled, all eight are visible at once and the section is 8 tiles in
+  four rows. The grid is two columns on a phone and adds a column as the sheet
+  widens. Print pins it to three columns so the layout does not depend on the
+  paper size or margin the reader picked.
+- A curve tile's caption is two fixed lines, the label above the peak figure.
+  On one line, "PM2.5  16.4 μg/m³" does not fit a two-column tile at 360px, and
+  letting it wrap would push that tile's chart down so the charts in a row no
+  longer lined up.
+- Curve captions no longer print the unit twice. The peak figure already ends
+  with its unit, so the caption read "18.4 °C °C".
 - The card no longer prints an `evidence_id` under every recommendation, risk,
   and chart. Doing so put 59 chips on one card and drowned the data they were
   meant to support; the IDs are shown once, in the evidence section, which is
@@ -182,6 +187,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one that wrapped, and a grid row is as tall as its tallest tile — leaving the
   numbers beside it stretched into half-empty boxes. Tiles in a row are now
   equal at every tested width from 320px to 640px.
+- The metrics grid is a fixed two columns. `auto-fit` produced three at phone
+  width, which left an empty cell beside the full-width total/peak tile and made
+  each tile narrow enough that "16.1 km/h" wrapped onto two lines.
 - The collapsed evidence list's tap target is 44px tall. At 24px it was below
   the minimum comfortable touch size.
 

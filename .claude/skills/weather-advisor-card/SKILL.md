@@ -131,12 +131,12 @@ In reading order, most useful first:
   and the statement that the card is not an official warning.
 
 The card is laid out for a phone: one sheet divided by hairline rules rather
-than a stack of separately framed cards, and the hourly curves as a horizontal
-snap-scrolling gallery rather than a vertical stack. Eight stacked charts made
-the window section two thirds of the document and pushed the risks and the
-caveats far below the fold. The gallery uses `scroll-snap` and native overflow,
-and the print rules lay the charts out as a two-column grid, since a gallery
-cannot be swiped on paper.
+than a stack of separately framed cards, and the hourly curves tiled in a grid
+rather than stacked one per row. Eight full-width charts made the window section
+two thirds of the document and pushed the risks and the caveats far below the
+fold. Tiling keeps every series visible at once — do not put them behind a
+horizontal swipe, where a reader may never scroll to a series. The grid is two
+columns on a phone and widens with the sheet; print pins it to three columns.
 
 Evidence IDs are shown once, in the evidence section, not under every
 recommendation, risk, and chart. Printing them under each item put dozens of

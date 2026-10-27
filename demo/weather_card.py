@@ -597,10 +597,13 @@ def window_html(brief: dict[str, Any], t: Translator) -> str:
         # The chart does not print its own evidence IDs. Eight charts each
         # carrying six chips put 59 of them on one card and buried the curve
         # they belong to; the IDs are shown once, in the evidence section.
+        #
+        # The peak figure already ends with its unit ("18.4 °C"), so the caption
+        # does not print the unit a second time beside it.
         curves.append(
             '<figure class="curve-card">'
             f'<figcaption><span>{esc(label)}</span>'
-            f'<strong>{esc(format_extreme(peak, unit))} <small>{esc(unit)}</small></strong>'
+            f"<strong>{esc(format_extreme(peak, unit))}</strong>"
             f"</figcaption>"
             f"{sparkline(series, title)}"
             "</figure>"
