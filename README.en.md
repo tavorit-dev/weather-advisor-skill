@@ -138,7 +138,8 @@ root and use the slash command:
 ```
 
 `/weather-advisor-card` renders a structured response as a self-contained HTML
-card, optionally folding in the windowed evidence to show hourly curves:
+card, optionally folding in the windowed evidence to show hourly curves, or
+attaching the round's measured token usage and elapsed time:
 
 ```text
 /weather-advisor-card /tmp/response.json --brief /tmp/brief.json --open
@@ -233,6 +234,7 @@ python -m pip install -r tests/requirements.txt
 python tests/test_demo.py
 python tests/test_weather_brief.py
 python tests/test_weather_card.py
+python tests/test_session_stats.py
 python tests/test_claude_integration.py
 python tests/run_examples.py
 python tests/validate_cases.py

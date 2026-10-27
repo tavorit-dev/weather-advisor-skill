@@ -46,6 +46,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   escaping, rejection of invalid input, language selection in both directions,
   that every key exists in every language, the reading order, the collapsed
   evidence list and its print behaviour, and the print-export rules.
+- Generation stats on the card, optionally supplied with `--stats`:
+  `scripts/claude_session_stats.py` reads the current Claude Code transcript,
+  deduplicates assistant messages by `message.id`, and reports input, output,
+  and cache token usage plus elapsed time since the last prompt. The card closes
+  with the measured input, output, and total tokens, the elapsed time, and the
+  model, and states that the request rendering the card is not counted yet.
+  Without a stats file the block is omitted rather than zeroed; the renderer
+  rejects an unknown source or invalid figures. Covered offline by
+  `tests/test_session_stats.py` and the new cases in `tests/test_weather_card.py`.
 - English README as the default (`README.md`), with the Chinese version in
   `README.zh.md`; both are maintained as a synchronized pair.
 - Detailed guides under `docs/`: getting started and host integration,

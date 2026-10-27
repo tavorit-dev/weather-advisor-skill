@@ -15,6 +15,7 @@ weather-advisor-skill/
 │   ├── examples-and-tests.md      # Example pairs and test coverage
 │   └── repository-layout.md       # This file
 ├── scripts/
+│   ├── claude_session_stats.py    # Session token/elapsed stats for the card
 │   └── install_claude_skill.py    # Install the skill under ~/.claude/skills
 ├── .claude/
 │   ├── settings.json              # Hooks are opt-in; empty by default
@@ -48,7 +49,7 @@ weather-advisor-skill/
 ├── demo/                          # Key-free demo: Open-Meteo -> evidence
 │   ├── weather_demo.py            # Weather + air quality -> evidence envelope
 │   ├── weather_brief.py           # Compact windowed evidence view for agents
-│   ├── weather_card.py            # Response (+ brief) -> self-contained HTML card
+│   ├── weather_card.py            # Response (+ brief + stats) -> self-contained HTML
 │   ├── card.css                   # Card styles incl. print rules, inlined
 │   ├── fixtures/                  # Synthetic Tokyo data for offline mode
 │   │   ├── geocoding-tokyo.json
@@ -65,6 +66,7 @@ weather-advisor-skill/
     ├── test_demo.py               # L1 data-layer tests (offline)
     ├── test_weather_brief.py      # Compact brief tests (offline)
     ├── test_weather_card.py       # HTML card renderer tests (offline)
+    ├── test_session_stats.py      # Session stats helper tests (offline)
     ├── test_claude_integration.py # Claude Code entries, installer, and hook tests
     ├── requirements.txt
     └── README.md

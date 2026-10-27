@@ -22,6 +22,7 @@ contract are defined in one place.
 └── hooks/
     └── validate-weather-output.py      # Optional response validator / Stop hook
 scripts/
+├── claude_session_stats.py             # Session token/elapsed stats for the card
 └── install_claude_skill.py             # Personal installation
 ```
 
@@ -147,6 +148,7 @@ replaceable demo layer:
 ```bash
 python3 demo/weather_card.py response.json --brief brief.json --output card.html
 python3 demo/weather_card.py response.json --query "今日天津天气" --output card.html
+python3 demo/weather_card.py response.json --stats stats.json --output card.html
 python3 demo/weather_card.py response.json --brief brief.json --print
 python3 demo/weather_card.py --check card.html
 ```
@@ -157,6 +159,15 @@ python3 demo/weather_card.py --check card.html
 - **With a brief.** The window from `demo/weather_brief.py` is added as summary
   tiles and hourly curves — temperature, apparent temperature, rain chance,
   precipitation, wind, gusts, PM2.5, PM10 — each labelled with its peak figure.
+- **Generation stats.** `--stats` takes a JSON file produced by
+  `scripts/claude_session_stats.py`, which reads the current Claude Code
+  transcript and measures token usage since the last prompt plus elapsed time.
+  The card closes with a generation-stats block: input, output, and total
+  tokens, elapsed time, and the model, plus a note that the request rendering
+  the card is not counted yet. Without the file the block is absent rather than
+  zeroed; the renderer rejects an unknown source or invalid figures. The
+  helper's fields and deduplication rules are documented in
+  [`demo/README.md`](../demo/README.md).
 - **Reading order.** The card is ordered by what the reader needs first: the
   summary, then the recommendations, then the window evidence behind them, the
   risks, and finally the raw evidence list. The recommendations section carries
@@ -355,6 +366,8 @@ test cases cover that.
 - Requested JSON passes `tests/validate_schema.py`.
 - A rendered card opens offline, loads nothing from the network, and every
   figure on it appears in the response or the brief it was given.
+- With `--stats`, the card ends with a generation-stats block whose token and
+  elapsed figures match the session transcript; without it, no block appears.
 - If the hook is enabled, `/hooks` lists it and the Stop event fires.
 - After a personal install, `demo/weather_demo.py` and `demo/weather_card.py`
   run from the installed directory and `CANONICAL-SKILL.md` is present.
@@ -374,6 +387,10 @@ test cases cover that.
 - The demo is a replaceable adapter, not part of the skill core. See
   [`demo/README.md`](../demo/README.md) for provider limits, attribution, and
   licensing.
+- Session stats are best-effort: they read Claude Code's transcript format,
+  stop before the in-flight request, and are omitted rather than estimated when
+  the transcript is unavailable. They are Claude Code-specific and live outside
+  the canonical skill.
 - The personal installer copies the repository; it does not install Python
   dependencies or configure hooks.
 - The Stop hook validates the JSON shape, not the factual consistency of the

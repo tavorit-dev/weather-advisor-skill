@@ -4,7 +4,7 @@ description: >
   Render a Weather Advisor response as a visual HTML card. Use when the user
   asks for a card, a visual summary, a shareable page, or a picture of a
   weather recommendation, or invokes /weather-advisor-card.
-argument-hint: "[response.json] [--brief brief.json] [--lang zh|en] [--open] [--print]"
+argument-hint: "[response.json] [--brief brief.json] [--stats stats.json] [--lang zh|en] [--open] [--print]"
 ---
 
 # Weather Advisor Card (Claude Code entry)
@@ -23,6 +23,7 @@ the canonical skill at `../../../SKILL.md`.
 
 ```text
 /weather-advisor-card /tmp/response.json --brief /tmp/brief.json --open
+/weather-advisor-card /tmp/response.json --stats /tmp/stats.json
 /weather-advisor-card /tmp/response.json
 /weather-advisor-card 上海 通勤 明天 --open
 /weather-advisor-card /tmp/response.json --brief /tmp/brief.json --print
@@ -39,16 +40,32 @@ the canonical skill at `../../../SKILL.md`.
 2. **Get a brief.** If the response came from a live consultation, also write
    the brief it was based on. Without a brief the card still renders, but it
    shows the advice alone with no window evidence.
-3. **Render.**
+3. **Collect generation stats.** Measure the round's real cost from the
+   session transcript:
+
+   ```bash
+   python3 scripts/claude_session_stats.py --output /tmp/stats.json
+   ```
+
+   The helper locates the current session through `$CLAUDE_CODE_SESSION_ID`,
+   sums token usage since the last prompt, and measures elapsed time to now.
+   If it fails — not running under Claude Code, no session id, no transcript,
+   or no usage yet — render without `--stats` and tell the user the card has
+   no cost block and why. Never estimate or hand-write these numbers.
+4. **Render.**
 
    ```bash
    python3 demo/weather_card.py /tmp/response.json --brief /tmp/brief.json \
-     --output /tmp/card.html
+     --stats /tmp/stats.json --output /tmp/card.html
    ```
 
-4. **Report the path** and offer to open it. Pass `--open` only when the user
+5. **Report the path** and offer to open it. Pass `--open` only when the user
    asked to see it, or offer it once. Without `--output` the card is written to
    a temporary file and its path is printed.
+
+The stats cover the round up to the moment the card is rendered; the request
+that actually renders it has not finished, so it is not yet in the transcript.
+The card says so rather than implying the figure is the final bill.
 
 ## Language
 
@@ -128,7 +145,11 @@ In reading order, most useful first:
   count. Expanding it shows each claim with its ID, and explains what an
   `evidence_id` is and why the card shows them;
 - missing information, uncertainty, the Open-Meteo attribution and license,
-  and the statement that the card is not an official warning.
+  and the statement that the card is not an official warning;
+- when `--stats` is supplied, a closing generation-stats block: input, output,
+  and total tokens, elapsed time, and the model, followed by the note that the
+  figures come from the Claude Code session transcript and exclude the request
+  that renders the card. Without `--stats` the block is absent, not zeroed.
 
 The card is laid out for a phone: one sheet divided by hairline rules rather
 than a stack of separately framed cards, and the hourly curves tiled in a grid
@@ -154,6 +175,11 @@ reach the advice.
   report the error the script gave.
 - Do not add weather values, thresholds, or recommendations to the card. If the
   user wants more analysis, change the response, not the renderer.
+- Session stats are measured, not authored. Pass only a file produced by
+  `scripts/claude_session_stats.py`; never fill in token counts or elapsed time
+  yourself, and never render a zeroed block to stand in for a failed
+  measurement. The renderer refuses a stats file whose source is not the
+  transcript helper.
 - Do not present the card as an official warning, an official air-quality
   bulletin, or a live measurement. Air-quality figures are CAMS modelled
   forecasts, and the two AQI scales are not comparable.

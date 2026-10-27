@@ -14,6 +14,7 @@ Usage:
     python demo/weather_card.py response.json --output card.html
     python demo/weather_card.py response.json --brief brief.json --open
     python demo/weather_card.py response.json --lang zh --open
+    python demo/weather_card.py response.json --stats stats.json --open
     python demo/weather_card.py response.json --print --output card.html
     python demo/weather_card.py --check card.html
 """
@@ -23,6 +24,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import math
 import sys
 import tempfile
 import unicodedata
@@ -121,6 +123,21 @@ STRINGS: dict[str, dict[str, str]] = {
         "total_peak": "{total} total / {peak} peak",
         "curve_label": "{label} over {window}",
         "footer_meta": "schema_version {version} · intent {intent} · status {status}",
+        "generation_stats": "Generation stats",
+        "stats_input": "Input tokens",
+        "stats_output": "Output tokens",
+        "stats_total": "Total tokens",
+        "stats_elapsed": "Elapsed",
+        "stats_model": "Model",
+        "stats_duration_seconds": "{seconds}s",
+        "stats_duration_minutes": "{minutes}m {seconds}s",
+        "stats_duration_hours": "{hours}h {minutes}m",
+        "stats_note": (
+            "From the Claude Code session transcript, up to the moment this "
+            "card was generated; the request that renders this card is not "
+            "counted yet. Input counts every prompt token, including cache "
+            "reads and writes. These figures are measured, not an estimate."
+        ),
         "footer_disclaimer": (
             "This card is a rendering of a Weather Advisor response and its "
             "windowed evidence. It contains no weather data of its own, and it "
@@ -204,6 +221,20 @@ STRINGS: dict[str, dict[str, str]] = {
         "total_peak": "合计 {total} / 峰值 {peak}",
         "curve_label": "{window} 内的{label}",
         "footer_meta": "schema_version {version} · 意图 {intent} · 状态 {status}",
+        "generation_stats": "生成统计",
+        "stats_input": "输入 tokens",
+        "stats_output": "输出 tokens",
+        "stats_total": "合计 tokens",
+        "stats_elapsed": "耗时",
+        "stats_model": "模型",
+        "stats_duration_seconds": "{seconds} 秒",
+        "stats_duration_minutes": "{minutes} 分 {seconds} 秒",
+        "stats_duration_hours": "{hours} 小时 {minutes} 分",
+        "stats_note": (
+            "统计自 Claude Code 会话记录，截至卡片生成前；正在生成本卡片的"
+            "这次请求尚未计入。输入包含缓存读取与写入的所有提示词 token。"
+            "这些数字来自实测，不是估算。"
+        ),
         "footer_disclaimer": (
             "本卡片是 Weather Advisor 响应及其时段证据的渲染结果，本身不含任何"
             "天气数据，也不构成官方预警或官方空气质量公报。"
@@ -215,6 +246,11 @@ STRINGS: dict[str, dict[str, str]] = {
 }
 DEFAULT_LANG = "en"
 LANGS = tuple(STRINGS)
+
+# The only stats source the card accepts. The figures are measured by
+# scripts/claude_session_stats.py from the Claude Code transcript; requiring
+# the marker keeps a hand-written or guessed file from claiming that origin.
+STATS_SOURCE = "claude-code-transcript"
 
 # Interface label keys for the tiles and curves. Kept separate from the
 # evidence-type keys so a metric's row key and its label can differ.
@@ -513,6 +549,82 @@ def check_response(response: dict[str, Any]) -> None:
         raise DemoError("needs_clarification requires a clarification_question")
 
 
+def check_stats(stats: Any) -> None:
+    """Reject stats the card cannot present honestly.
+
+    The card never computes or estimates session usage itself. A missing
+    number is reported as an error rather than drawn as zero, because zero is
+    a measurement and a missing file is not one.
+    """
+    if not isinstance(stats, dict):
+        raise DemoError("stats must be a JSON object")
+    if stats.get("source") != STATS_SOURCE:
+        raise DemoError(
+            f"unknown stats source: {stats.get('source')!r} "
+            f"(expected {STATS_SOURCE!r})"
+        )
+    for field in ("input_tokens", "output_tokens", "elapsed_seconds"):
+        value = stats.get(field)
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(value)
+            or value < 0
+        ):
+            raise DemoError(
+                f"stats field must be a finite non-negative number: {field}"
+            )
+    model = stats.get("model")
+    if model is not None and not (isinstance(model, str) and model.strip()):
+        raise DemoError("stats field must be a non-empty string: model")
+
+
+def duration_text(seconds: float, t: Translator) -> str:
+    """Format an elapsed time at the precision a reader needs."""
+    total = max(0, int(round(seconds)))
+    if total < 60:
+        return t("stats_duration_seconds", seconds=total)
+    if total < 3600:
+        return t(
+            "stats_duration_minutes",
+            minutes=total // 60,
+            seconds=total % 60,
+        )
+    return t(
+        "stats_duration_hours",
+        hours=total // 3600,
+        minutes=(total % 3600) // 60,
+    )
+
+
+def stats_html(stats: dict[str, Any], t: Translator) -> str:
+    """Render measured session usage as the card's closing block."""
+    rows = [
+        ("stats_input", fmt_number(stats["input_tokens"])),
+        ("stats_output", fmt_number(stats["output_tokens"])),
+        (
+            "stats_total",
+            fmt_number(stats["input_tokens"] + stats["output_tokens"]),
+        ),
+        ("stats_elapsed", duration_text(stats["elapsed_seconds"], t)),
+    ]
+    model = stats.get("model")
+    if model:
+        rows.append(("stats_model", str(model)))
+    cells = "".join(
+        f'<div class="stat"><dt>{esc(t(key))}</dt>'
+        f"<dd>{esc(value)}</dd></div>"
+        for key, value in rows
+    )
+    return (
+        '<div class="stats-block">'
+        f'<h2>{esc(t("generation_stats"))}</h2>'
+        f'<dl class="stats-grid">{cells}</dl>'
+        f'<p class="stats-note">{esc(t("stats_note"))}</p>'
+        "</div>"
+    )
+
+
 def window_html(brief: dict[str, Any], t: Translator) -> str:
     coverage = brief.get("coverage") or {}
     location = brief.get("location") or {}
@@ -662,7 +774,10 @@ def window_html(brief: dict[str, Any], t: Translator) -> str:
 
 
 def body_html(
-    response: dict[str, Any], brief: dict[str, Any] | None, t: Translator
+    response: dict[str, Any],
+    brief: dict[str, Any] | None,
+    t: Translator,
+    stats: dict[str, Any] | None = None,
 ) -> str:
     summary = esc(response.get("summary", ""))
     evidence = response.get("evidence") or []
@@ -794,6 +909,7 @@ def body_html(
         f"{list_block('uncertainty', uncertainty, 'uncertainty')}"
         f'<footer class="section footer"><p>{esc(footer_meta)}</p>'
         f'<p>{esc(t("footer_disclaimer"))}</p>'
+        f"{stats_html(stats, t) if stats else ''}"
         f'<p class="print-hint">{esc(t("print_hint"))}</p>'
         "</footer>"
         "</main>"
@@ -819,10 +935,13 @@ def render_card(
     response: dict[str, Any],
     brief: dict[str, Any] | None,
     lang: str = DEFAULT_LANG,
+    stats: dict[str, Any] | None = None,
 ) -> str:
     check_response(response)
     if brief is not None and not isinstance(brief.get("coverage"), dict):
         raise DemoError("brief is missing its coverage block")
+    if stats is not None:
+        check_stats(stats)
 
     t = Translator(lang)
     style = (Path(__file__).resolve().parent / "card.css").read_text(
@@ -835,7 +954,7 @@ def render_card(
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         f"<title>{esc(t('title'))}</title>\n"
         f"<style>\n{style}\n</style>\n</head>\n<body>\n"
-        f"{body_html(response, brief, t)}\n"
+        f"{body_html(response, brief, t, stats)}\n"
         f"{source}\n"
         "</body>\n</html>\n"
     )
@@ -867,6 +986,12 @@ def main(argv: list[str] | None = None) -> int:
         default="",
         help="the user's question; its language selects the interface "
         "language when --lang is not given",
+    )
+    parser.add_argument(
+        "--stats",
+        type=Path,
+        help="optional session stats from scripts/claude_session_stats.py, "
+        "shown as a measured token and elapsed-time block at the end",
     )
     parser.add_argument(
         "--output",
@@ -908,6 +1033,7 @@ def main(argv: list[str] | None = None) -> int:
             raise DemoError("a response file is required")
         response = read_json(args.response, "response")
         brief = read_json(args.brief, "brief") if args.brief else None
+        stats = read_json(args.stats, "stats") if args.stats else None
         # The question decides the language, not the response's prose: the
         # response is printed verbatim and may be in another language.
         lang = (
@@ -915,7 +1041,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.lang
             else detect_lang(args.query)
         )
-        card = render_card(response, brief, lang)
+        card = render_card(response, brief, lang, stats)
     except (DemoError, OSError) as exc:
         print(f"Weather card failed: {exc}", file=sys.stderr)
         return 1

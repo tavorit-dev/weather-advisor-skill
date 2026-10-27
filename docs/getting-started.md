@@ -200,6 +200,7 @@ python -m pip install -r tests/requirements.txt
 python tests/test_demo.py          # L1: offline data layer, no third-party dependency
 python tests/test_weather_brief.py # L1: compact brief windowing and statistics
 python tests/test_weather_card.py  # L1: HTML card rendering
+python tests/test_session_stats.py # L1: card token/elapsed stats helper
 python tests/run_examples.py       # Schema and evidence linkage for all six examples
 python tests/validate_cases.py     # Lint the 32 cases
 ```

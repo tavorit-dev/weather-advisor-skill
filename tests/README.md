@@ -21,6 +21,7 @@
 | `test_demo.py` | L1 数据层测试：离线验证 demo 的地理编码与字段转换 |
 | `test_weather_brief.py` | 紧凑摘要测试：离线验证窗口过滤、统计值、证据 ID、`--compact`、`--summary-only` 与 `--every` |
 | `test_weather_card.py` | 卡片渲染测试：离线验证自包含 HTML、响应内容原样呈现、曲线与证据 ID、转义与非法输入拒绝、中英文界面切换与打印导出样式 |
+| `test_session_stats.py` | 会话统计测试：用合成 transcript 验证消息去重、统计起点、耗时口径、非法输入拒绝，以及按会话 ID 定位文件 |
 | `test_claude_integration.py` | Claude Code 入口、安装脚本与可选 Hook 的集成测试 |
 | `requirements.txt` | Python 依赖（`test_demo.py` 只用标准库） |
 
@@ -38,7 +39,7 @@ python -m pip install -r tests/requirements.txt
 
 | 层次 | 测试内容 | 命令 | 需要 LLM |
 | --- | --- | --- | --- |
-| L1 数据层 | 地理编码、天气 API 返回有效数据、字段与单位转换、证据 ID 唯一性、紧凑摘要窗口过滤、卡片渲染 | `python tests/test_demo.py`、`python tests/test_weather_brief.py`、`python tests/test_weather_card.py` | 否 |
+| L1 数据层 | 地理编码、天气 API 返回有效数据、字段与单位转换、证据 ID 唯一性、紧凑摘要窗口过滤、卡片渲染、会话统计 | `python tests/test_demo.py`、`python tests/test_weather_brief.py`、`python tests/test_weather_card.py`、`python tests/test_session_stats.py` | 否 |
 | L2 规则层 | 地点缺失时追问、证据缺失时不编造、证据引用有效、输出结构 | `python tests/run_examples.py`、`python tests/validate_cases.py`、`python tests/grade_case.py` | 否，使用固定输入/输出 |
 | L3 Agent 层 | 实际加载 `SKILL.md` 后，能否基于真实或固定天气数据给出合理建议 | 由开发者用自己选择的 Agent 运行 | 是 |
 
@@ -57,6 +58,9 @@ python tests/test_weather_brief.py
 
 # 0c. 卡片渲染（离线）
 python tests/test_weather_card.py
+
+# 0c2. 会话统计 helper（离线，合成 transcript）
+python tests/test_session_stats.py
 
 # 0d. Claude Code 入口、安装脚本与 Hook（Hook 用例在缺少 jsonschema 时跳过）
 python tests/test_claude_integration.py
