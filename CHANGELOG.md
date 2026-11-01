@@ -114,6 +114,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Rebranded both READMEs as Zhiyan · 智言 and linked the official site at
+  `https://weather.talvori.top`. A new "Zhiyan and this repository" section
+  separates the WeChat mini-program product from this host-agnostic skill
+  package: product scenarios, data source, and free/credit model are stated on
+  the product side, while the repository keeps only the advice specification,
+  JSON Schema, and acceptance cases. The skill's technical name remains
+  `weather-advisor`.
 - Consolidated project-level constraints, pre-release checks, and contribution
   rules in `CLAUDE.md`; they are no longer duplicated in the README.
 - Renamed the English README from `README.en.md` to `README.md`; the Chinese

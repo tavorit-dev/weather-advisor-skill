@@ -1,10 +1,17 @@
 <h1 align="center">
-  weather-advisor-skill
+  Zhiyan · 智言
 </h1>
 
-<p align="center"><a href="README.md">简体中文</a> | English</p>
+<p align="center">
+  <strong>Say the scenario. Turn weather into action.</strong><br />
+  <code>weather-advisor-skill</code> · Open-source skill for a conversational weather assistant
+</p>
+
+<p align="center"><a href="README.md">简体中文</a> | English · <a href="https://weather.talvori.top">Website</a></p>
 
 <p align="center">
+  <a href="https://weather.talvori.top"><img src="https://img.shields.io/badge/website-weather.talvori.top-24292f?style=flat" alt="Official website"></a>
+  &nbsp;
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-24292f?style=flat" alt="Apache License 2.0"></a>
   &nbsp;
   <a href="schemas/recommendation.schema.json"><img src="https://img.shields.io/badge/schema__version-1.0-24292f?style=flat" alt="Output schema_version 1.0"></a>
@@ -19,10 +26,41 @@
 Make Skill-compatible agents give weather advice that starts with evidence and
 ends with machine-checkable output.
 
-This repository is a skill package made of documentation, a JSON Schema, and a
-test suite. It is **not** a weather API. It does not fetch weather data or ship
-an agent runtime. It governs how an agent uses weather facts supplied by the
-host, and how it returns structured, reviewable advice.
+Zhiyan (智言) is a conversational weather assistant in WeChat: say where you are
+going and what you plan to do, and it turns weather data into actions such as
+taking an umbrella, changing shoes, or leaving earlier. This repository is the
+open-source advice specification behind it: a skill package made of
+documentation, a JSON Schema, and a test suite. It is **not** a weather API. It
+does not fetch weather data or ship an agent runtime. It governs how an agent
+uses weather facts supplied by the host, and how it returns structured,
+reviewable advice.
+
+## Zhiyan and this repository
+
+[Zhiyan](https://weather.talvori.top) is the product: a WeChat mini program
+where the conversation is the interface. Ask "Do I need an umbrella today?" or
+"What should I prepare for tomorrow's business trip?", and the answer is not a
+list of numbers but the next action you can take. It does not report the
+weather; it reasons through your scenario. This repository writes that same
+reasoning as a host-agnostic specification: read the scenario, anchor it to
+weather facts, then return actions.
+
+| | Zhiyan mini program | This repository |
+| --- | --- | --- |
+| Form | WeChat mini program; conversation is the interface | A skill package installable into any compatible host |
+| Input | One sentence and your itinerary | `weather_evidence` supplied by the host |
+| Output | Advice, clarifying questions, and the facts behind them | A structured response valid against the JSON Schema |
+| Common scenarios | Commute, business travel, outdoor activity, two-city comparison | Six intents, see [`references/`](references/) |
+| Data | The product's data provider, as credited in the site footer | Only the supplied evidence; the demo adapter uses Open-Meteo |
+| Accounts and billing | Basic queries free; scenario reasoning costs credits | No accounts, payments, or billing |
+
+The mini program deliberately leaves out a city selector and hourly charts: the
+conversation is the interface. The `demo/` here verifies the data path for
+developers; it is not a copy of the product UI. Product features, credit rules,
+and terms are governed by the [official site](https://weather.talvori.top);
+this repository maintains only the host-agnostic advice specification. Both
+share one rule: **advice must point back to a specific weather fact, and when
+facts are missing the assistant asks before it guesses.**
 
 ## Why it exists
 
@@ -39,7 +77,9 @@ The project fixes those behaviors with one entry skill, four reference
 documents, one JSON Schema, six example pairs, and 32 acceptance cases. Success
 is not that a model can talk about weather; it is that different agents follow
 the same analysis process, refuse to fabricate when facts are missing, and
-produce output a program can check.
+produce output a program can check. Zhiyan practices these constraints in
+conversation; this repository writes them down as a reusable, testable
+specification.
 
 ## Quick start
 
@@ -53,6 +93,10 @@ cp -r weather-advisor-skill ~/.claude/skills/weather-advisor
 
 The skill's `name` is `weather-advisor`. If the host requires the directory
 name to match, rename the directory accordingly.
+
+"Zhiyan / 智言" is the product name; `weather-advisor` is the skill's technical
+identifier. The install directory, `name` field, and commands keep that English
+identifier.
 
 ### 2. Supply weather evidence
 
@@ -247,5 +291,7 @@ validators and the per-case grader.
 ## Version and license
 
 Current version: `0.1.0`. Output `schema_version`: `1.0`.
+
+Zhiyan official site: [weather.talvori.top](https://weather.talvori.top).
 
 [Apache License 2.0](LICENSE).
