@@ -1,5 +1,5 @@
 <h1 align="center">
-  Zhiyan · 智言
+  观象 · Guanxiang
 </h1>
 
 <p align="center">
@@ -25,20 +25,24 @@
 
 让兼容 Skill 的 Agent 在天气建议上做到：**先看证据，再给建议，输出可校验**。
 
-智言（Zhiyan）是微信里的对话式天气助手：说出你要去哪儿、要做什么，它把天气
+观象（Guanxiang）是微信里的对话式天气助手：说出你要去哪儿、要做什么，它把天气
 数据翻译成带伞、换鞋、提前出门这类可以直接执行的动作。本仓库是它背后的开源
 建议规范：一份纯文档 + JSON Schema + 测试用例的 Skill 包，不是天气 API，也不
 内置 Agent Runtime；它约束 Agent 如何使用宿主提供的天气事实，以及如何返回
 结构化、可被程序检查的建议。
 
-## 智言与这个仓库
+## 观象与这个仓库
 
-[智言](https://weather.talvori.top)是产品形态：一个微信小程序，对话就是界面。
+「观象」之名取自「观象授时」：观测天象，据以定时令。古人看云识天，是为了决定
+何时播种、何时出行；观象看天气证据，是为了决定今天带不带伞、要不要提前出门。
+名字本身就是这个仓库的方法——**先观其象，再定其行。**
+
+[观象](https://weather.talvori.top)是产品形态：一个微信小程序，对话就是界面。
 问一句「今天要带伞吗」或「明天出差要准备什么」，拿到的不是一串数字，而是能
 直接执行的下一步。它不报天气，它替你推演——这个仓库把同一套推演逻辑写成
 宿主无关的规范：读出场景，对准天气事实，再给出动作。
 
-| | 智言小程序 | 本仓库 |
+| | 观象小程序 | 本仓库 |
 | --- | --- | --- |
 | 形态 | 微信小程序，对话即界面 | 可装入兼容宿主的 Skill 包 |
 | 输入 | 你的一句话和行程 | 宿主提供的 `weather_evidence` |
@@ -66,7 +70,7 @@
 本项目用一份入口 Skill、四份参考规范、一份 JSON Schema、六组示例和 32 条
 验收用例，把这些行为固定下来。交付标准不是「模型能说出天气建议」，而是：
 不同 Agent 在相同输入下遵循一致的分析流程，缺少必要事实时不编造，输出可以
-被程序检查。智言在对话里践行这些约束；本仓库把它们写成可复用、可验收的规范。
+被程序检查。观象在对话里践行这些约束；本仓库把它们写成可复用、可验收的规范。
 
 ## 快速开始
 
@@ -81,7 +85,7 @@ cp -r weather-advisor-skill ~/.claude/skills/weather-advisor
 `SKILL.md` 的 `name` 是 `weather-advisor`。如果宿主要求目录名与 `name`
 一致，请把目录重命名为 `weather-advisor`。
 
-「智言 / Zhiyan」是产品名，`weather-advisor` 是 Skill 的技术标识；安装目录、
+「观象 / Guanxiang」是产品名，`weather-advisor` 是 Skill 的技术标识；安装目录、
 `name` 字段和命令都沿用这个英文标识。
 
 ### 2. 提供天气证据
@@ -262,6 +266,6 @@ python tests/validate_cases.py
 
 当前版本 `0.1.0`，输出 `schema_version` 为 `1.0`。
 
-智言（Zhiyan）产品官网：[weather.talvori.top](https://weather.talvori.top)。
+观象（Guanxiang）产品官网：[weather.talvori.top](https://weather.talvori.top)。
 
 [Apache License 2.0](LICENSE)。

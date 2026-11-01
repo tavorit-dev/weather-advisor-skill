@@ -1,5 +1,5 @@
 <h1 align="center">
-  Zhiyan · 智言
+  观象 · Guanxiang
 </h1>
 
 <p align="center">
@@ -26,18 +26,24 @@
 Make Skill-compatible agents give weather advice that starts with evidence and
 ends with machine-checkable output.
 
-Zhiyan (智言) is a conversational weather assistant in WeChat: say where you are
-going and what you plan to do, and it turns weather data into actions such as
-taking an umbrella, changing shoes, or leaving earlier. This repository is the
-open-source advice specification behind it: a skill package made of
+Guanxiang (观象) is a conversational weather assistant in WeChat: say where you
+are going and what you plan to do, and it turns weather data into actions
+such as taking an umbrella, changing shoes, or leaving earlier. This repository
+is the open-source advice specification behind it: a skill package made of
 documentation, a JSON Schema, and a test suite. It is **not** a weather API. It
 does not fetch weather data or ship an agent runtime. It governs how an agent
 uses weather facts supplied by the host, and how it returns structured,
 reviewable advice.
 
-## Zhiyan and this repository
+## Guanxiang and this repository
 
-[Zhiyan](https://weather.talvori.top) is the product: a WeChat mini program
+The name Guanxiang comes from the classical phrase 观象授时 — "observe the
+signs and set the seasons": watching the sky to decide when to sow and when to
+travel. Guanxiang reads weather evidence the same way, to decide whether to
+carry an umbrella or leave earlier. The name is the method this repository
+writes down: **read the signs first, then choose the action.**
+
+[Guanxiang](https://weather.talvori.top) is the product: a WeChat mini program
 where the conversation is the interface. Ask "Do I need an umbrella today?" or
 "What should I prepare for tomorrow's business trip?", and the answer is not a
 list of numbers but the next action you can take. It does not report the
@@ -45,7 +51,7 @@ weather; it reasons through your scenario. This repository writes that same
 reasoning as a host-agnostic specification: read the scenario, anchor it to
 weather facts, then return actions.
 
-| | Zhiyan mini program | This repository |
+| | Guanxiang mini program | This repository |
 | --- | --- | --- |
 | Form | WeChat mini program; conversation is the interface | A skill package installable into any compatible host |
 | Input | One sentence and your itinerary | `weather_evidence` supplied by the host |
@@ -77,7 +83,7 @@ The project fixes those behaviors with one entry skill, four reference
 documents, one JSON Schema, six example pairs, and 32 acceptance cases. Success
 is not that a model can talk about weather; it is that different agents follow
 the same analysis process, refuse to fabricate when facts are missing, and
-produce output a program can check. Zhiyan practices these constraints in
+produce output a program can check. Guanxiang practices these constraints in
 conversation; this repository writes them down as a reusable, testable
 specification.
 
@@ -94,7 +100,7 @@ cp -r weather-advisor-skill ~/.claude/skills/weather-advisor
 The skill's `name` is `weather-advisor`. If the host requires the directory
 name to match, rename the directory accordingly.
 
-"Zhiyan / 智言" is the product name; `weather-advisor` is the skill's technical
+"Guanxiang / 观象" is the product name; `weather-advisor` is the skill's technical
 identifier. The install directory, `name` field, and commands keep that English
 identifier.
 
@@ -292,6 +298,6 @@ validators and the per-case grader.
 
 Current version: `0.1.0`. Output `schema_version`: `1.0`.
 
-Zhiyan official site: [weather.talvori.top](https://weather.talvori.top).
+Guanxiang official site: [weather.talvori.top](https://weather.talvori.top).
 
 [Apache License 2.0](LICENSE).
