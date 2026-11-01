@@ -114,6 +114,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Renamed the product from Zhiyan · 智言 to Guanxiang · 观象 in both READMEs,
+  with copy explaining the name: 观象 comes from the classical phrase 观象授时,
+  "observe the signs and set the seasons" — read the evidence, then choose the
+  action. The site URL is unchanged, and `weather-advisor` remains the skill's
+  technical identifier.
 - Rebranded both READMEs as Zhiyan · 智言 and linked the official site at
   `https://weather.talvori.top`. A new "Zhiyan and this repository" section
   separates the WeChat mini-program product from this host-agnostic skill
